@@ -1,0 +1,163 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model ContentPage {
+  id             String      @id @default(uuid())
+  url            String      @unique
+  domain         String
+  path           String
+  market         String?
+  language       String?
+  title          String?
+  description    String?
+  rawHtml        String?     @db.Text
+  textContent    String?     @db.Text
+  wordCount      Int?
+  tags           String[]
+  isArticle      Boolean     @default(false)
+  source         String      @default("firecrawl")
+  lastCrawledAt  DateTime?
+  lastModifiedAt DateTime?
+  changeHash     String?
+  changePct      Float?
+  embedding      Bytes?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @default(now()) @updatedAt
+  events         PageEvent[]
+
+  @@map("content_pages")
+}
+
+model PageEvent {
+  id        String      @id @default(uuid())
+  page      ContentPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  pageId    String
+  url       String
+  eventType String
+  market    String?
+  language  String?
+  title     String?
+  changePct Float?
+  eventAt   DateTime    @default(now())
+  createdAt DateTime    @default(now())
+
+  @@map("page_events")
+}
+
+model RssSource {
+  id        String       @id @default(uuid())
+  name      String
+  feedUrl   String       @unique
+  market    String?
+  language  String?
+  topicTags String[]
+  active    Boolean      @default(true)
+  createdAt DateTime     @default(now())
+  articles  RssArticle[]
+
+  @@map("rss_sources")
+}
+
+model RssArticle {
+  id                 String     @id @default(uuid())
+  source             RssSource? @relation(fields: [sourceId], references: [id])
+  sourceId           String?
+  guid               String?
+  title              String
+  url                String     @unique
+  publishedAt        DateTime?
+  author             String?
+  rawContent         String?    @db.Text
+  normalizedLanguage String?
+  market             String?
+  topics             String[]
+  entities           Json?
+  summary            String?    @db.Text
+  relevanceScore     Float?
+  embedding          Bytes?
+  createdAt          DateTime   @default(now())
+
+  @@map("rss_articles")
+}
+
+model UserPreference {
+  id             String   @id @default(uuid())
+  userEmail      String   @unique
+  markets        String[]
+  languages      String[]
+  topics         String[]
+  digestFrequency String   @default("weekly")
+  createdAt      DateTime @default(now())
+
+  @@map("user_preferences")
+}
+
+model Digest {
+  id          String   @id @default(uuid())
+  userEmail   String
+  periodStart DateTime
+  periodEnd   DateTime
+  market      String?
+  language    String?
+  topicFocus  String[]
+  articleIds  String[]
+  emailStatus String?
+  createdAt   DateTime @default(now())
+
+  @@map("digests")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String?   @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+  role          String    @default("USER")
+  markets       String[]  @default([])
+  accounts      Account[]
+  sessions      Session[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}

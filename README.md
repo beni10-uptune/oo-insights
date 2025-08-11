@@ -1,36 +1,152 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# OO Insights - EUCAN Marketing Intelligence Platform
 
-## Getting Started
+Internal marketing insights app for obesity medication campaigns across EUCAN markets for truthaboutweight.global.
 
-First, run the development server:
+## Architecture
 
+- **Frontend**: Next.js 14 (App Router, TypeScript), Tailwind CSS, shadcn/ui
+- **Backend**: Next.js API routes + Google Cloud Run services
+- **Database**: PostgreSQL with pgvector extension for embeddings
+- **AI**: Vertex AI (Gemini 2.5) with Anthropic/OpenAI fallbacks
+- **Deployment**: Vercel (frontend) + Google Cloud Platform (backend services)
+
+## Features
+
+### 📊 Web Activity
+Track website changes and updates using Firecrawl MCP for continuous monitoring of truthaboutweight.global pages.
+
+### 📚 Industry Insights
+RSS feed aggregation with AI-powered summarization and topic classification for obesity medication news.
+
+### 👁️ Competitor Watch
+Monitor competitor advertising through Meta Ad Library and DataForSEO integration.
+
+### 🎯 Organic Impact
+Google Search Console integration for SEO performance tracking across markets.
+
+### 📈 Search Trends
+DataForSEO Labs integration for keyword trend analysis and search volume insights.
+
+### 🔍 Search Ads Builder
+AI-powered Google Ads campaign generation with compliance guardrails.
+
+### 📊 Campaign Analyzer
+Multi-channel campaign performance analytics with CSV to PowerPoint reporting.
+
+### 📣 Meta Ads Builder
+Localized Meta advertising campaign creation with market-specific adaptations.
+
+## Markets Supported
+
+- Global
+- UK (United Kingdom)
+- CA (Canada)
+- BE-NL (Belgium - Dutch)
+- BE-FR (Belgium - French)
+- CH-DE (Switzerland - German)
+- CH-FR (Switzerland - French)
+- CH-IT (Switzerland - Italian)
+
+## Setup
+
+### Prerequisites
+
+- Node.js 18+ and npm
+- PostgreSQL 15+ with pgvector extension
+- Google Cloud Project with enabled APIs
+- Vercel account for deployment
+
+### Installation
+
+1. Clone the repository:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cd oo-insights
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Set up environment variables:
+```bash
+cp .env.example .env.local
+# Edit .env.local with your credentials
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Initialize the database:
+```bash
+npx prisma generate
+npx prisma migrate dev
+```
 
-## Learn More
+5. Run the development server:
+```bash
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Open [http://localhost:3000](http://localhost:3000) to view the application.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Environment Variables
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Key environment variables needed:
 
-## Deploy on Vercel
+- `DATABASE_URL`: PostgreSQL connection string
+- `NEXTAUTH_SECRET`: NextAuth session secret
+- `GOOGLE_CLIENT_ID/SECRET`: Google OAuth credentials
+- `GCP_PROJECT_ID`: Google Cloud project ID
+- `VERTEXAI_*`: Vertex AI configuration
+- `MCP_FIRECRAWL_API_KEY`: Firecrawl MCP API key
+- `DATAFORSEO_*`: DataForSEO credentials
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+See `.env.example` for the complete list.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Database Schema
+
+The application uses PostgreSQL with pgvector for storing:
+- `content_pages`: Crawled website content
+- `page_events`: Website change events
+- `rss_sources`: RSS feed configurations
+- `rss_articles`: Aggregated RSS articles
+- `user_preferences`: User settings and market preferences
+- `digests`: Email digest history
+
+## Deployment
+
+### Vercel (Frontend)
+
+```bash
+vercel --prod
+```
+
+### Google Cloud (Backend Services)
+
+```bash
+# Deploy Cloud Run services
+gcloud run deploy api-worker --source . --region europe-west1
+gcloud run deploy batch-runner --source . --region europe-west1
+
+# Set up Cloud Scheduler jobs
+gcloud scheduler jobs create http crawl-websites \
+  --schedule="0 */6 * * *" \
+  --uri="https://api-worker-xxx.run.app/crawl"
+```
+
+## Security
+
+- Google Workspace SSO authentication
+- Domain-based access control
+- Role-based permissions (GLOBAL_ADMIN, REGIONAL_ADMIN, MARKET_USER)
+- Market-scoped data access
+
+## Compliance
+
+All content generation includes:
+- Medical compliance guardrails
+- Approved brand terminology
+- Source citation requirements
+- No medical claims or advice
+
+## License
+
+Internal use only - truthaboutweight.global EUCAN marketing team.
