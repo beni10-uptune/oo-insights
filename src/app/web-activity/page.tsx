@@ -21,7 +21,7 @@ export default function WebActivityPage() {
             <p className="text-muted-foreground">
               This page will provide comprehensive insights into user behavior patterns, 
               including page views, session duration, bounce rates, and user flow analytics. 
-              You'll be able to track visitor journeys, identify high-performing content, 
+              You&apos;ll be able to track visitor journeys, identify high-performing content, 
               and optimize your website based on actual user interactions.
             </p>
           </CardContent>

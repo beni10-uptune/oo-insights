@@ -39,7 +39,7 @@ export default function AITestPage() {
       } else {
         setSummary("Error: " + (data.error || "Failed to generate summary"));
       }
-    } catch (error) {
+    } catch {
       setSummary("Error: Failed to connect to AI service");
     } finally {
       setLoading(false);
@@ -64,7 +64,7 @@ export default function AITestPage() {
       } else {
         setTopics(["Error: " + (data.error || "Failed to classify")]);
       }
-    } catch (error) {
+    } catch {
       setTopics(["Error: Failed to connect to AI service"]);
     } finally {
       setLoading(false);

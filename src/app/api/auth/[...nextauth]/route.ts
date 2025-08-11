@@ -6,7 +6,8 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma) as any,
+  // @ts-expect-error - PrismaAdapter type mismatch with NextAuth
+  adapter: PrismaAdapter(prisma),
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
@@ -21,7 +22,7 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
-    async signIn({ user, account, profile }) {
+    async signIn({ user }) {
       if (!user.email) return false;
       
       const allowedDomains = (process.env.ALLOWED_EMAIL_DOMAINS || "")
@@ -36,7 +37,7 @@ export const authOptions: NextAuthOptions = {
       const domain = user.email.split("@")[1];
       return allowedDomains.includes(domain);
     },
-    async session({ session, token, user }) {
+    async session({ session, user }) {
       if (session.user) {
         session.user.id = user.id;
         session.user.role = user.role || "USER";

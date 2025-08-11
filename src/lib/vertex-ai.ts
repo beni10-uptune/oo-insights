@@ -263,7 +263,7 @@ Localized content:`;
   });
 }
 
-export default {
+const vertexAIHelpers = {
   generateText,
   generateEmbedding,
   summarizeContent,
@@ -272,3 +272,5 @@ export default {
   analyzeCompetitorContent,
   localizeContent,
 };
+
+export default vertexAIHelpers;

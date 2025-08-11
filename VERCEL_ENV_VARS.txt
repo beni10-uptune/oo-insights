@@ -1,0 +1,27 @@
+# Copy these environment variables to Vercel Dashboard
+# Project Settings > Environment Variables
+
+DATABASE_URL=postgresql://postgres:k0NIcM68WtpEWkHiRjF2h8H0PFTlLoMrWbCO2zDk050=@34.38.133.240:5432/insights?schema=public&sslmode=require
+
+NEXTAUTH_URL=https://oo.mindsparkdigitallabs.com
+
+NEXTAUTH_SECRET=fr+lYLycT9XY+hOkVEpJDYobdfdpzCNhHQVgD1rk+m4=
+
+GCP_PROJECT_ID=oo-insights-468716
+
+GCP_REGION=europe-west1
+
+VERTEXAI_LOCATION=europe-west1
+
+VERTEXAI_MODEL_TEXT=gemini-1.5-pro-002
+
+VERTEXAI_MODEL_TEXT_FAST=gemini-1.5-flash-002
+
+VERTEXAI_MODEL_EMBED=text-embedding-004
+
+ALLOWED_EMAIL_DOMAINS=mindsparkdigitallabs.com
+
+DEFAULT_MARKETS=Global,UK,CA,BE-NL,BE-FR,CH-DE,CH-FR,CH-IT
+
+# IMPORTANT: For GOOGLE_APPLICATION_CREDENTIALS_JSON
+# Copy the entire contents of service-account-key.json as the value
