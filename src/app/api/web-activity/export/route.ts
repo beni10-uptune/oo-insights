@@ -18,7 +18,26 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch latest content for the specified market
-    const pages = await prisma.$queryRaw`
+    const pages = await prisma.$queryRaw<Array<{
+      url: string;
+      title: string | null;
+      description: string | null;
+      market: string | null;
+      language: string | null;
+      category: string | null;
+      subcategory: string | null;
+      summary: string | null;
+      summaryEn: string | null;
+      hasHcpLocator: boolean | null;
+      signals: unknown;
+      wordCount: number | null;
+      lastCrawledAt: Date | null;
+      lastModifiedAt: Date | null;
+      textContent?: string | null;
+      rawHtml?: string | null;
+      latestEventType: string | null;
+      latestEventAt: Date | null;
+    }>>`
       SELECT 
         cp.url,
         cp.title,
@@ -55,18 +74,7 @@ export async function GET(request: NextRequest) {
       // Convert to CSV format
       const csvRows = ['URL,Title,Description,Category,Subcategory,Summary (English),Last Modified,Has HCP Locator,Latest Event'];
       
-      for (const page of pages as Array<{
-        url: string;
-        title: string | null;
-        description: string | null;
-        category: string | null;
-        subcategory: string | null;
-        summary: string | null;
-        summaryEn: string | null;
-        lastModifiedAt: Date | null;
-        hasHcpLocator: boolean | null;
-        latestEventType: string | null;
-      }>) {
+      for (const page of pages) {
         const row = [
           page.url,
           `"${(page.title || '').replace(/"/g, '""')}"`,
@@ -102,16 +110,7 @@ export async function GET(request: NextRequest) {
         summaries: [] as Array<{ url: string; title: string; summary: string }>,
       };
       
-      for (const page of pages as Array<{
-        url: string;
-        title: string | null;
-        category: string | null;
-        hasHcpLocator: boolean | null;
-        summaryEn: string | null;
-        summary: string | null;
-        latestEventType: string | null;
-        latestEventAt: Date | null;
-      }>) {
+      for (const page of pages) {
         // Count categories
         if (page.category) {
           llmContext.categories[page.category] = (llmContext.categories[page.category] || 0) + 1;
@@ -187,7 +186,7 @@ ${llmContext.summaries
         market,
         exportDate: new Date().toISOString(),
         pageCount: pages.length,
-        pages: pages as Array<Record<string, unknown>>,
+        pages: pages,
       };
       
       return NextResponse.json(exportData, {
