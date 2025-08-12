@@ -153,11 +153,9 @@ export async function POST(request: NextRequest) {
     // Log job completion
     await prisma.$executeRaw`
       INSERT INTO jobs_trends (
-        job_type, status, markets_processed, duration_ms,
-        records_created, error_message
+        market, language, job_type, status, error_message
       ) VALUES (
-        'daily_fetch', 'completed', ${results.markets.join(',')}, 
-        0, 0, NULL
+        'ALL', 'multi', 'trends', 'success', NULL
       )
     `;
     
@@ -175,10 +173,9 @@ export async function POST(request: NextRequest) {
     try {
       await prisma.$executeRaw`
         INSERT INTO jobs_trends (
-          job_type, status, markets_processed, duration_ms,
-          records_created, error_message
+          market, language, job_type, status, error_message
         ) VALUES (
-          'daily_fetch', 'failed', '', 0, 0, 
+          'ALL', 'multi', 'trends', 'failed', 
           ${error instanceof Error ? error.message : 'Unknown error'}
         )
       `;
