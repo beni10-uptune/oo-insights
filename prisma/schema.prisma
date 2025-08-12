@@ -8,28 +8,29 @@ datasource db {
 }
 
 model ContentPage {
-  id             String      @id @default(uuid())
-  url            String      @unique
+  id             String       @id @default(uuid())
+  url            String       @unique
   domain         String
   path           String
   market         String?
   language       String?
   title          String?
   description    String?
-  rawHtml        String?     @db.Text
-  textContent    String?     @db.Text
+  rawHtml        String?      @db.Text
+  textContent    String?      @db.Text
   wordCount      Int?
   tags           String[]
-  isArticle      Boolean     @default(false)
-  source         String      @default("firecrawl")
+  isArticle      Boolean      @default(false)
+  source         String       @default("firecrawl")
   lastCrawledAt  DateTime?
   lastModifiedAt DateTime?
   changeHash     String?
   changePct      Float?
   embedding      Bytes?
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @default(now()) @updatedAt
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @default(now()) @updatedAt
   events         PageEvent[]
+  changes        PageChange[]
 
   @@map("content_pages")
 }
@@ -48,6 +49,20 @@ model PageEvent {
   createdAt DateTime    @default(now())
 
   @@map("page_events")
+}
+
+model PageChange {
+  id                String      @id @default(uuid())
+  page              ContentPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  pageId            String
+  changeType        String
+  changeDescription String?     @db.Text
+  oldContentHash    String
+  newContentHash    String
+  changedAt         DateTime    @default(now())
+  createdAt         DateTime    @default(now())
+
+  @@map("page_changes")
 }
 
 model RssSource {
