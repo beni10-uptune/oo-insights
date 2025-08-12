@@ -56,7 +56,8 @@ export async function GET() {
     
     for (const [marketKey, config] of Object.entries(MARKET_CONFIG)) {
       const stats = marketStats.find(s => s.market === marketKey);
-      const hasRecentActivity = eventMap.get(marketKey) ? eventMap.get(marketKey) > 0 : false;
+      const eventCount = eventMap.get(marketKey);
+      const hasRecentActivity = eventCount !== undefined && eventCount > 0;
       
       coverage.push({
         market: marketKey,
