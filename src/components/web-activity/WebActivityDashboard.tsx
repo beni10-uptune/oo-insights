@@ -10,9 +10,11 @@ interface WebActivityEvent {
   title: string;
   market?: string;
   language?: string;
-  changeType: 'created' | 'updated';
+  changeType?: 'created' | 'updated';
+  eventType?: 'created' | 'updated';
   changeDescription?: string;
-  crawledAt: string;
+  crawledAt?: string | null;
+  eventAt?: string | null;
   contentHash?: string;
 }
 
@@ -259,7 +261,9 @@ export default function WebActivityDashboard() {
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">Last Crawl</p>
                 <p className="text-sm font-medium">
-                  {stats.lastCrawl ? formatDistanceToNow(new Date(stats.lastCrawl), { addSuffix: true }) : 'Never'}
+                  {stats.lastCrawl && !isNaN(new Date(stats.lastCrawl).getTime()) 
+                    ? formatDistanceToNow(new Date(stats.lastCrawl), { addSuffix: true }) 
+                    : 'Never'}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">Auto-crawls every 6h</p>
               </div>
@@ -358,11 +362,11 @@ export default function WebActivityDashboard() {
                 <div className="flex items-start gap-4">
                   <div className="flex-shrink-0">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                      event.changeType === 'created' 
+                      (event.changeType || event.eventType) === 'created' 
                         ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
                         : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                     }`}>
-                      {event.changeType === 'created' ? '+' : '↻'}
+                      {(event.changeType || event.eventType) === 'created' ? '+' : '↻'}
                     </div>
                   </div>
                   
@@ -400,14 +404,16 @@ export default function WebActivityDashboard() {
                       
                       <div className="flex-shrink-0 text-right">
                         <p className="text-sm text-gray-500">
-                          {formatDistanceToNow(new Date(event.crawledAt), { addSuffix: true })}
+                          {(event.crawledAt || event.eventAt) && !isNaN(new Date(event.crawledAt || event.eventAt || '').getTime())
+                            ? formatDistanceToNow(new Date(event.crawledAt || event.eventAt || ''), { addSuffix: true })
+                            : 'Recently'}
                         </p>
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium mt-1 ${
-                          event.changeType === 'created'
+                          (event.changeType || event.eventType) === 'created'
                             ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                             : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400'
                         }`}>
-                          {event.changeType === 'created' ? 'New' : 'Updated'}
+                          {(event.changeType || event.eventType) === 'created' ? 'New' : 'Updated'}
                         </span>
                         {event.market && MARKETS.find(m => m.value === event.market)?.isCore && (
                           <div className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">

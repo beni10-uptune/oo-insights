@@ -25,10 +25,25 @@ export async function GET(request: NextRequest) {
       limit,
     });
     
+    // Ensure dates are properly serialized
+    const serializedEvents = events.map(event => ({
+      ...event,
+      crawledAt: event.eventAt?.toISOString() || null,
+      createdAt: event.createdAt?.toISOString() || null,
+      eventAt: event.eventAt?.toISOString() || null,
+      page: event.page ? {
+        ...event.page,
+        createdAt: event.page.createdAt?.toISOString() || null,
+        updatedAt: event.page.updatedAt?.toISOString() || null,
+        lastCrawledAt: event.page.lastCrawledAt?.toISOString() || null,
+        lastModifiedAt: event.page.lastModifiedAt?.toISOString() || null,
+      } : null
+    }));
+    
     return NextResponse.json({
       success: true,
-      count: events.length,
-      events,
+      count: serializedEvents.length,
+      events: serializedEvents,
     });
   } catch (error) {
     console.error('Get events error:', error);
