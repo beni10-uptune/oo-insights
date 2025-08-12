@@ -34,9 +34,13 @@ export async function GET(request: NextRequest) {
       eventAt: event.eventAt?.toISOString() || null,
       page: event.page ? {
         ...event.page,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         createdAt: (event.page as any).createdAt?.toISOString() || null,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         updatedAt: (event.page as any).updatedAt?.toISOString() || null,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         lastCrawledAt: (event.page as any).lastCrawledAt?.toISOString() || null,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         lastModifiedAt: (event.page as any).lastModifiedAt?.toISOString() || null,
       } : null
     }));
