@@ -45,14 +45,13 @@ export async function GET(request: NextRequest) {
       cacheTime.setMinutes(cacheTime.getMinutes() - 15);
       
       const cachedData = await prisma.$queryRaw`
-        SELECT brand, date, interest_index
+        SELECT brand, date, value
         FROM trends_series
         WHERE market = ${market}
           AND date >= ${startDate}
           AND date <= ${endDate}
-          AND updated_at >= ${cacheTime}
         ORDER BY brand, date
-      ` as Array<{ brand: string; date: Date; interest_index: number }>;
+      ` as Array<{ brand: string; date: Date; value: number }>;
       
       if (cachedData.length > 0) {
         // Format cached data
@@ -79,12 +78,11 @@ export async function GET(request: NextRequest) {
       for (const brandSeries of freshData) {
         for (const point of brandSeries.points) {
           await prisma.$executeRaw`
-            INSERT INTO trends_series (market, language, brand, date, interest_index, updated_at)
-            VALUES (${market}, ${lang}, ${brandSeries.brand}, ${new Date(point.date)}::date, ${point.value}, NOW())
-            ON CONFLICT (market, brand, date) 
+            INSERT INTO trends_series (market, brand, date, value, timeframe)
+            VALUES (${market}, ${brandSeries.brand}, ${new Date(point.date).toISOString().split('T')[0]}, ${point.value}, ${window})
+            ON CONFLICT (market, brand, date, timeframe) 
             DO UPDATE SET 
-              interest_index = ${point.value},
-              updated_at = NOW()
+              value = ${point.value}
           `;
         }
       }
@@ -113,13 +111,13 @@ export async function GET(request: NextRequest) {
       
       // Return any cached data we have
       const fallbackData = await prisma.$queryRaw`
-        SELECT brand, date, interest_index
+        SELECT brand, date, value
         FROM trends_series
         WHERE market = ${market}
           AND date >= ${startDate}
           AND date <= ${endDate}
         ORDER BY brand, date
-      ` as Array<{ brand: string; date: Date; interest_index: number }>;
+      ` as Array<{ brand: string; date: Date; value: number }>;
       
       if (fallbackData.length > 0) {
         const series = formatSeriesData(fallbackData);
@@ -151,7 +149,7 @@ export async function GET(request: NextRequest) {
 }
 
 // Helper to format series data
-function formatSeriesData(data: Array<{ brand: string; date: Date; interest_index: number }>) {
+function formatSeriesData(data: Array<{ brand: string; date: Date; value: number }>) {
   const brandMap = new Map<string, Array<{ date: string; value: number }>>();
   
   for (const row of data) {
@@ -160,7 +158,7 @@ function formatSeriesData(data: Array<{ brand: string; date: Date; interest_inde
     }
     brandMap.get(row.brand)!.push({
       date: row.date.toISOString().split('T')[0],
-      value: row.interest_index,
+      value: row.value,
     });
   }
   

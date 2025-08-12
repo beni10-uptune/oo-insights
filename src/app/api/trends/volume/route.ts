@@ -35,31 +35,31 @@ export async function GET(request: NextRequest) {
     
     try {
       // Fetch top volume queries from database
-      const topVolumeQueries = await prisma.$queryRaw`
+      const topVolumeQueries = await prisma.$queryRawUnsafe(`
         SELECT 
           query,
           brand,
           volume_monthly,
           cpc,
           theme,
-          growth_pct
+          COALESCE(growth_pct, 0) as growth_pct
         FROM top_volume_queries
-        WHERE market = ${market}
-          AND timeframe = ${window}
-          AND period_end >= ${startDate}
+        WHERE market = $1
+          AND timeframe = $2
+          AND period_end >= $3
         ORDER BY volume_monthly DESC
         LIMIT 20
-      ` as Array<{
+      `, market, window, startDate) as Array<{
         query: string;
         brand: string | null;
         volume_monthly: number;
         cpc: number | null;
         theme: string | null;
-        growth_pct: number | null;
+        growth_pct: number;
       }>;
       
       // Fetch rising queries
-      const risingQueries = await prisma.$queryRaw`
+      const risingQueries = await prisma.$queryRawUnsafe(`
         SELECT 
           query,
           brand,
@@ -67,13 +67,13 @@ export async function GET(request: NextRequest) {
           growth_pct AS growth,
           theme
         FROM related_queries
-        WHERE market = ${market}
-          AND timeframe = ${window}
-          AND period_end >= ${startDate}
+        WHERE market = $1
+          AND timeframe = $2
+          AND period_end >= $3
           AND growth_pct > 30
         ORDER BY rising_score DESC
         LIMIT 10
-      ` as Array<{
+      `, market, window, startDate) as Array<{
         query: string;
         brand: string | null;
         volume: number;
