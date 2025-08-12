@@ -203,6 +203,55 @@ class DataForSEOClient {
     }
   }
 
+  // Get trends series data (simplified version)
+  async getTrendsSeries(
+    market: keyof typeof MARKET_LOCATIONS,
+    keywords: string[],
+    _timeRange: '7d' | '30d' | '90d' = '30d'
+  ): Promise<TrendsSeries[]> {
+    // DataForSEO doesn't have direct Google Trends API
+    // Return empty series for now - would need different data source
+    return keywords.map(keyword => ({
+      brand: keyword,
+      points: [],
+    }));
+  }
+
+  // Get top volume queries for a brand
+  async getTopVolumeQueries(
+    market: keyof typeof MARKET_LOCATIONS,
+    keyword: string,
+    limit: number = 20
+  ): Promise<Array<{ keyword: string; volume: number; cpc: number | null }>> {
+    const location = MARKET_LOCATIONS[market];
+    
+    try {
+      const response = await this.client.post('/keywords_data/google/keywords_for_keywords/live', [
+        {
+          keywords: [keyword],
+          location_code: location.location_code,
+          language_code: location.language_code,
+          limit,
+          sort_by: 'search_volume',
+        }
+      ]);
+
+      if (response.data.tasks?.[0]?.result) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return response.data.tasks[0].result.map((item: any) => ({
+          keyword: item.keyword,
+          volume: item.search_volume || 0,
+          cpc: item.cpc || null,
+        }));
+      }
+      
+      return [];
+    } catch (error) {
+      console.error('Error fetching top volume queries:', error);
+      return [];
+    }
+  }
+
   // Get search volume for keywords
   async getSearchVolume(
     market: keyof typeof MARKET_LOCATIONS,

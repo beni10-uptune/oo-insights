@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     // This endpoint allows manual triggering of the trends fetch job
     // In production, you might want to add additional authentication
