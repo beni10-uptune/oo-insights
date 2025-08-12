@@ -126,7 +126,7 @@ export async function GET(request: NextRequest) {
           llmContext.summaries.push({
             url: page.url,
             title: page.title || 'Untitled',
-            summary: page.summaryEn || page.summary,
+            summary: (page.summaryEn || page.summary) as string,
           });
         }
         
@@ -138,7 +138,7 @@ export async function GET(request: NextRequest) {
           if (daysSinceUpdate <= 7) {
             llmContext.recentUpdates.push({
               url: page.url,
-              title: page.title,
+              title: page.title || 'Untitled',
               daysAgo: daysSinceUpdate,
             });
           }
