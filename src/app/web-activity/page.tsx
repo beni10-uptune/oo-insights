@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import WebActivityDashboard from "@/components/web-activity/WebActivityDashboard";
 import CoverageMatrix from "@/components/web-activity/CoverageMatrix";
-import { Activity, Globe, BarChart } from 'lucide-react';
+import { Activity, Globe } from 'lucide-react';
 
 export default function WebActivityPage() {
   const [activeTab, setActiveTab] = useState<'activity' | 'coverage'>('activity');

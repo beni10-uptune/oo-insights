@@ -229,7 +229,7 @@ export async function getMarketCoverage(): Promise<{
   const markets = [];
   let totalPages = 0;
   let marketsWithContent = 0;
-  let lastUpdate = null;
+  const lastUpdate = null;
 
   for (const [market, config] of Object.entries(MARKET_CONFIG)) {
     // Query database for this market's stats

@@ -320,8 +320,52 @@ export async function searchPages(
   });
 }
 
+/**
+ * Store multiple page content results (for enhanced crawl)
+ */
+export async function storePageContent(results: Array<CrawlResult & {
+  market?: string;
+  language?: string;
+  summary?: string;
+  summaryEn?: string;
+  category?: string;
+  subcategory?: string;
+  signals?: any;
+  hasHcpLocator?: boolean;
+}>>) {
+  const storedPages = [];
+  
+  for (const result of results) {
+    try {
+      const page = await storeCrawlResult(result);
+      
+      // Update with enhanced fields if present
+      if (result.summary || result.summaryEn || result.category) {
+        await prisma.contentPage.update({
+          where: { id: page.id },
+          data: {
+            summary: result.summary,
+            summaryEn: result.summaryEn,
+            category: result.category,
+            subcategory: result.subcategory,
+            signals: result.signals,
+            hasHcpLocator: result.hasHcpLocator,
+          },
+        });
+      }
+      
+      storedPages.push(page);
+    } catch (error) {
+      console.error('Failed to store page content:', error);
+    }
+  }
+  
+  return storedPages;
+}
+
 const webActivityExports = {
   storeCrawlResult,
+  storePageContent,
   getRecentEvents,
   getWebActivityStats,
   searchPages,

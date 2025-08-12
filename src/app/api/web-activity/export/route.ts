@@ -55,7 +55,18 @@ export async function GET(request: NextRequest) {
       // Convert to CSV format
       const csvRows = ['URL,Title,Description,Category,Subcategory,Summary (English),Last Modified,Has HCP Locator,Latest Event'];
       
-      for (const page of pages as any[]) {
+      for (const page of pages as Array<{
+        url: string;
+        title: string | null;
+        description: string | null;
+        category: string | null;
+        subcategory: string | null;
+        summary: string | null;
+        summaryEn: string | null;
+        lastModifiedAt: Date | null;
+        hasHcpLocator: boolean | null;
+        latestEventType: string | null;
+      }>) {
         const row = [
           page.url,
           `"${(page.title || '').replace(/"/g, '""')}"`,
@@ -87,11 +98,20 @@ export async function GET(request: NextRequest) {
         pageCount: pages.length,
         categories: {} as Record<string, number>,
         hasHcpLocator: false,
-        recentUpdates: [],
+        recentUpdates: [] as Array<{ url: string; title: string; daysAgo: number }>,
         summaries: [] as Array<{ url: string; title: string; summary: string }>,
       };
       
-      for (const page of pages as any[]) {
+      for (const page of pages as Array<{
+        url: string;
+        title: string | null;
+        category: string | null;
+        hasHcpLocator: boolean | null;
+        summaryEn: string | null;
+        summary: string | null;
+        latestEventType: string | null;
+        latestEventAt: Date | null;
+      }>) {
         // Count categories
         if (page.category) {
           llmContext.categories[page.category] = (llmContext.categories[page.category] || 0) + 1;
@@ -143,7 +163,7 @@ ${Object.entries(llmContext.categories)
 ${llmContext.recentUpdates.length > 0 
   ? llmContext.recentUpdates
       .slice(0, 10)
-      .map((u: any) => `- ${u.title} (${u.daysAgo} days ago): ${u.url}`)
+      .map((u) => `- ${u.title} (${u.daysAgo} days ago): ${u.url}`)
       .join('\n')
   : 'No recent updates'}
 
@@ -167,7 +187,7 @@ ${llmContext.summaries
         market,
         exportDate: new Date().toISOString(),
         pageCount: pages.length,
-        pages: pages as any[],
+        pages: pages as Array<Record<string, unknown>>,
       };
       
       return NextResponse.json(exportData, {

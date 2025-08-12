@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { crawlAllEucanMarkets } from '@/lib/services/enhanced-crawl';
 import { headers } from 'next/headers';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Verify the request is from Vercel Cron
     const authHeader = headers().get('authorization');

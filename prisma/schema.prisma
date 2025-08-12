@@ -27,6 +27,13 @@ model ContentPage {
   changeHash     String?
   changePct      Float?
   embedding      Bytes?
+  summary        String?      @db.Text
+  summaryEn      String?      @db.Text
+  category       String?
+  subcategory    String?
+  hasHcpLocator  Boolean?     @default(false)
+  signals        Json?
+  crawlError     String?      @db.Text
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @default(now()) @updatedAt
   events         PageEvent[]
@@ -45,6 +52,8 @@ model PageEvent {
   language  String?
   title     String?
   changePct Float?
+  summary   String?     @db.Text
+  category  String?
   eventAt   DateTime    @default(now())
   createdAt DateTime    @default(now())
 
