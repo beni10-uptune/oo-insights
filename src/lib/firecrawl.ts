@@ -11,34 +11,82 @@ const firecrawl = new FirecrawlApp({
   apiKey: apiKey || '',
 });
 
-// Define core markets for truthaboutweight.global sites
-// Core markets: UK, Italy, Spain, France, Germany, Poland, Canada
+// EUCAN Markets - Comprehensive list with correct URLs
 export const TRUTHABOUTWEIGHT_SITES = {
-  // Core Markets
-  uk: 'https://truthaboutweight.uk',
-  it: 'https://truthaboutweight.it',
-  es: 'https://truthaboutweight.es',
-  fr: 'https://truthaboutweight.fr',
-  de: 'https://truthaboutweight.de',
-  pl: 'https://truthaboutweight.pl',
-  ca: 'https://truthaboutweight.ca',
+  // Core EUCAN Markets with dedicated sites
+  de: 'https://www.ueber-gewicht.de/',
+  fr: 'https://www.audeladupoids.fr/',
+  it: 'https://www.novoio.it/',
+  es: 'https://www.laverdaddesupeso.es/',
+  ca_en: 'https://www.truthaboutweight.ca/en/',
+  ca_fr: 'https://www.truthaboutweight.ca/fr/',
   
-  // Global site
-  global: 'https://truthaboutweight.global',
+  // Switzerland multilingual
+  ch_de: 'https://www.meingewichtverstehen.ch/',
+  ch_it: 'https://www.laveritasulpeso.ch/',
+  ch_fr: 'https://www.laveritesurlepoids.ch/',
   
-  // Additional European markets
-  be_nl: 'https://truthaboutweight.be/nl',
-  be_fr: 'https://truthaboutweight.be/fr',
-  ch_de: 'https://truthaboutweight.ch/de',
-  ch_fr: 'https://truthaboutweight.ch/fr',
-  ch_it: 'https://truthaboutweight.ch/it',
-  nl: 'https://truthaboutweight.nl',
-  at: 'https://truthaboutweight.at',
-  pt: 'https://truthaboutweight.pt',
-  se: 'https://truthaboutweight.se',
-  dk: 'https://truthaboutweight.dk',
-  no: 'https://truthaboutweight.no',
-  fi: 'https://truthaboutweight.fi',
+  // Nordics
+  se: 'https://www.meromobesitas.se/',
+  no: 'https://www.snakkomvekt.no/',
+  
+  // Baltics
+  lv: 'https://www.manssvars.lv/',
+  ee: 'https://www.minukaal.ee/',
+  lt: 'https://www.manosvoris.lt/',
+  
+  // Croatia
+  hr: 'https://www.istinaodebljini.hr/',
+  
+  // Global subpaths (need path restrictions)
+  be_nl: 'https://www.truthaboutweight.global/be/nl.html',
+  be_fr: 'https://www.truthaboutweight.global/be/fr.html',
+  bg: 'https://www.truthaboutweight.global/bg/bg.html',
+  fi: 'https://www.truthaboutweight.global/fi/fi.html',
+  gr: 'https://www.truthaboutweight.global/gr/el.html',
+  hu: 'https://www.truthaboutweight.global/hu/hu.html',
+  is: 'https://www.truthaboutweight.global/is/is.html',
+  ie: 'https://www.truthaboutweight.global/ie/en.html',
+  sk: 'https://www.truthaboutweight.global/sk/sk.html',
+  rs: 'https://www.truthaboutweight.global/rs/sr.html',
+  
+  // Global site (fallback)
+  global: 'https://www.truthaboutweight.global/',
+};
+
+// Market configuration with allowed paths for global subdomains
+export const MARKET_CONFIG: Record<string, { 
+  url: string; 
+  allowedPaths?: string[];
+  language: string;
+  timezone: string;
+  flag: string;
+}> = {
+  de: { url: TRUTHABOUTWEIGHT_SITES.de, language: 'de', timezone: 'Europe/Berlin', flag: '🇩🇪' },
+  fr: { url: TRUTHABOUTWEIGHT_SITES.fr, language: 'fr', timezone: 'Europe/Paris', flag: '🇫🇷' },
+  it: { url: TRUTHABOUTWEIGHT_SITES.it, language: 'it', timezone: 'Europe/Rome', flag: '🇮🇹' },
+  es: { url: TRUTHABOUTWEIGHT_SITES.es, language: 'es', timezone: 'Europe/Madrid', flag: '🇪🇸' },
+  ca_en: { url: TRUTHABOUTWEIGHT_SITES.ca_en, language: 'en', timezone: 'America/Toronto', flag: '🇨🇦' },
+  ca_fr: { url: TRUTHABOUTWEIGHT_SITES.ca_fr, language: 'fr', timezone: 'America/Toronto', flag: '🇨🇦' },
+  ch_de: { url: TRUTHABOUTWEIGHT_SITES.ch_de, language: 'de', timezone: 'Europe/Zurich', flag: '🇨🇭' },
+  ch_it: { url: TRUTHABOUTWEIGHT_SITES.ch_it, language: 'it', timezone: 'Europe/Zurich', flag: '🇨🇭' },
+  ch_fr: { url: TRUTHABOUTWEIGHT_SITES.ch_fr, language: 'fr', timezone: 'Europe/Zurich', flag: '🇨🇭' },
+  se: { url: TRUTHABOUTWEIGHT_SITES.se, language: 'sv', timezone: 'Europe/Stockholm', flag: '🇸🇪' },
+  no: { url: TRUTHABOUTWEIGHT_SITES.no, language: 'no', timezone: 'Europe/Oslo', flag: '🇳🇴' },
+  lv: { url: TRUTHABOUTWEIGHT_SITES.lv, language: 'lv', timezone: 'Europe/Riga', flag: '🇱🇻' },
+  ee: { url: TRUTHABOUTWEIGHT_SITES.ee, language: 'et', timezone: 'Europe/Tallinn', flag: '🇪🇪' },
+  lt: { url: TRUTHABOUTWEIGHT_SITES.lt, language: 'lt', timezone: 'Europe/Vilnius', flag: '🇱🇹' },
+  hr: { url: TRUTHABOUTWEIGHT_SITES.hr, language: 'hr', timezone: 'Europe/Zagreb', flag: '🇭🇷' },
+  be_nl: { url: TRUTHABOUTWEIGHT_SITES.be_nl, allowedPaths: ['/be/'], language: 'nl', timezone: 'Europe/Brussels', flag: '🇧🇪' },
+  be_fr: { url: TRUTHABOUTWEIGHT_SITES.be_fr, allowedPaths: ['/be/'], language: 'fr', timezone: 'Europe/Brussels', flag: '🇧🇪' },
+  bg: { url: TRUTHABOUTWEIGHT_SITES.bg, allowedPaths: ['/bg/'], language: 'bg', timezone: 'Europe/Sofia', flag: '🇧🇬' },
+  fi: { url: TRUTHABOUTWEIGHT_SITES.fi, allowedPaths: ['/fi/'], language: 'fi', timezone: 'Europe/Helsinki', flag: '🇫🇮' },
+  gr: { url: TRUTHABOUTWEIGHT_SITES.gr, allowedPaths: ['/gr/'], language: 'el', timezone: 'Europe/Athens', flag: '🇬🇷' },
+  hu: { url: TRUTHABOUTWEIGHT_SITES.hu, allowedPaths: ['/hu/'], language: 'hu', timezone: 'Europe/Budapest', flag: '🇭🇺' },
+  is: { url: TRUTHABOUTWEIGHT_SITES.is, allowedPaths: ['/is/'], language: 'is', timezone: 'Atlantic/Reykjavik', flag: '🇮🇸' },
+  ie: { url: TRUTHABOUTWEIGHT_SITES.ie, allowedPaths: ['/ie/'], language: 'en', timezone: 'Europe/Dublin', flag: '🇮🇪' },
+  sk: { url: TRUTHABOUTWEIGHT_SITES.sk, allowedPaths: ['/sk/'], language: 'sk', timezone: 'Europe/Bratislava', flag: '🇸🇰' },
+  rs: { url: TRUTHABOUTWEIGHT_SITES.rs, allowedPaths: ['/rs/'], language: 'sr', timezone: 'Europe/Belgrade', flag: '🇷🇸' },
 };
 
 export interface CrawlResult {

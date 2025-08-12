@@ -1,5 +1,19 @@
 {
   "buildCommand": "npx prisma generate && npm run build",
   "framework": "nextjs",
-  "outputDirectory": ".next"
+  "outputDirectory": ".next",
+  "crons": [
+    {
+      "path": "/api/cron/daily-crawl",
+      "schedule": "0 8 * * *"
+    }
+  ],
+  "functions": {
+    "src/app/api/cron/daily-crawl/route.ts": {
+      "maxDuration": 300
+    },
+    "src/app/api/crawl/enhanced/route.ts": {
+      "maxDuration": 300
+    }
+  }
 }

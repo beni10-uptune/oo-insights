@@ -44,6 +44,13 @@ export async function GET(request: NextRequest) {
           "changeHash" TEXT,
           "changePct" DOUBLE PRECISION,
           "embedding" BYTEA,
+          "summary" TEXT,
+          "summaryEn" TEXT,
+          "category" TEXT,
+          "subcategory" TEXT,
+          "hasHcpLocator" BOOLEAN DEFAULT false,
+          "signals" JSONB,
+          "crawlError" TEXT,
           "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
           "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
           CONSTRAINT "content_pages_pkey" PRIMARY KEY ("id")
@@ -77,6 +84,8 @@ export async function GET(request: NextRequest) {
           "language" TEXT,
           "title" TEXT,
           "changePct" DOUBLE PRECISION,
+          "summary" TEXT,
+          "category" TEXT,
           "eventAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
           "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
           CONSTRAINT "page_events_pkey" PRIMARY KEY ("id")
