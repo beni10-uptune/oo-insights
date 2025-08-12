@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
     
     console.log('Enhanced crawl request:', { markets, all, summarize, classify });
     
-    let results;
+    let results: Record<string, Awaited<ReturnType<typeof crawlMarket>>>;
     
     if (all) {
       // Crawl all EUCAN markets
