@@ -123,6 +123,7 @@ npx prisma generate
 
 ## Code Quality Guidelines
 When working on this project, please follow these principles:
+- **NEVER USE MOCK DATA IN PRODUCTION** - All data must come from real sources (database, APIs)
 - **Think in to-do lists before acting** - Plan your approach with TodoWrite tool
 - **Always analyze relevant files for context** - Read existing code before modifying
 - **Keep code changes as simple as possible** - Avoid over-engineering
@@ -133,9 +134,17 @@ When working on this project, please follow these principles:
 - **Avoid being lazy; implement the full fix** - Don't leave partial implementations
 - **If unsure, ask clarifying questions** - Better to confirm than assume
 
+### Critical Production Rules
+- **NO MOCK DATA**: Production must always use real data from database/APIs
+- **FAIL PROPERLY**: If database/API is unavailable, return proper error responses (503/500)
+- **ENVIRONMENT CHECKS**: Mock data can ONLY be used in development with explicit checks
+- **ROBUST SOLUTIONS**: Always implement complete, production-ready solutions
+
 ## Important Notes
+- **NEVER deploy mock data to production** - All production data must be real
 - Always prioritize core markets in features
 - Use market-specific language codes (en-GB for UK, fr-FR for France, etc.)
 - Ensure GDPR compliance for European markets
 - Test features with actual market URLs before deployment
 - **ALWAYS run `npm run lint` and `npm run typecheck` after completing tasks**
+- **Production endpoints must fail gracefully without database** - Return 503 errors, never mock data

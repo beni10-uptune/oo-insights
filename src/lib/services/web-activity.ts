@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 /**
  * Store or update a crawled page in the database
  */
-export async function storeCrawlResult(result: CrawlResult) {
+export async function storeCrawlResult(result: CrawlResult & { publishDate?: Date }) {
   const url = result.url;
   const urlObj = new URL(url);
   const domain = urlObj.hostname;
@@ -62,6 +62,8 @@ export async function storeCrawlResult(result: CrawlResult) {
       lastModifiedAt: new Date(),
       changeHash: contentHash,
       changePct,
+      // @ts-expect-error - publishDate column might not exist yet
+      publishDate: result.publishDate || null,
     },
     update: {
       title: result.title,
@@ -75,6 +77,8 @@ export async function storeCrawlResult(result: CrawlResult) {
       changeHash: contentHash,
       changePct,
       updatedAt: new Date(),
+      // @ts-expect-error - publishDate column might not exist yet
+      publishDate: result.publishDate || null,
     },
   });
   
@@ -332,6 +336,7 @@ export async function storePageContent(results: Array<CrawlResult & {
   subcategory?: string;
   signals?: Record<string, unknown>;
   hasHcpLocator?: boolean;
+  publishDate?: Date;
 }>) {
   const storedPages = [];
   

@@ -16,6 +16,15 @@ interface WebActivityEvent {
   crawledAt?: string | null;
   eventAt?: string | null;
   contentHash?: string;
+  summary?: string;
+  summaryEn?: string;
+  category?: string;
+  subcategory?: string;
+  publishDate?: string | null;
+  wordCount?: number;
+  isArticle?: boolean;
+  tags?: string[];
+  changePct?: number;
 }
 
 interface ActivityStats {
@@ -189,7 +198,7 @@ export default function WebActivityDashboard() {
             Web Activity Tracker
           </h2>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Monitor changes across truthaboutweight sites • Last updated: {stats?.lastCrawl && !isNaN(new Date(stats.lastCrawl).getTime()) ? new Date(stats.lastCrawl).toLocaleDateString() : 'Never'}
+            Monitor articles and content updates across truthaboutweight sites • Crawled daily at 9 AM CET
           </p>
         </div>
         
@@ -373,32 +382,84 @@ export default function WebActivityDashboard() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex-1">
-                        <h4 className="font-medium flex items-center gap-2">
-                          {event.market && (
-                            <>
-                              <span>{getMarketFlag(event.market)}</span>
-                              {getCoreMarketBadge(event.market) && (
-                                <span className="text-yellow-500" title="Core Market">⭐</span>
-                              )}
-                            </>
-                          )}
+                        {/* Market Badge */}
+                        {event.market && (
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-2xl">{getMarketFlag(event.market)}</span>
+                            <span className="font-semibold text-sm">
+                              {MARKETS.find(m => m.value === event.market)?.label.split(' ').slice(1).join(' ')}
+                            </span>
+                            {getCoreMarketBadge(event.market) && (
+                              <span className="text-yellow-500" title="Core Market">⭐</span>
+                            )}
+                            {event.isArticle && (
+                              <span className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded text-xs font-medium">
+                                Article
+                              </span>
+                            )}
+                            {event.category && (
+                              <span className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-0.5 rounded text-xs">
+                                {event.category}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* Title */}
+                        <h4 className="font-medium text-lg">
                           {event.title || 'Untitled Page'}
                         </h4>
-                        <div className="flex items-center gap-2 mt-1 text-sm text-gray-600 dark:text-gray-400">
+                        
+                        {/* Summary */}
+                        {(event.summary || event.summaryEn) && (
+                          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                            {event.summaryEn || event.summary}
+                          </p>
+                        )}
+                        
+                        {/* Metadata */}
+                        <div className="flex items-center gap-4 mt-2 text-xs text-gray-500 dark:text-gray-400">
+                          {event.publishDate && (
+                            <span className="flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              Published: {new Date(event.publishDate).toLocaleDateString()}
+                            </span>
+                          )}
+                          {event.wordCount && (
+                            <span>{event.wordCount.toLocaleString()} words</span>
+                          )}
+                          {event.changePct !== undefined && event.changePct > 0 && (
+                            <span className="text-orange-600 dark:text-orange-400">
+                              {event.changePct}% changed
+                            </span>
+                          )}
+                        </div>
+                        
+                        {/* URL */}
+                        <div className="flex items-center gap-2 mt-2 text-sm text-gray-600 dark:text-gray-400">
                           <Link className="h-3 w-3" />
                           <a 
                             href={event.url} 
                             target="_blank" 
                             rel="noopener noreferrer"
-                            className="hover:text-blue-600 dark:hover:text-blue-400 truncate max-w-md"
+                            className="hover:text-blue-600 dark:hover:text-blue-400 truncate max-w-xl"
                           >
                             {event.url}
                           </a>
                         </div>
-                        {event.changeDescription && (
-                          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                            {event.changeDescription}
-                          </p>
+                        
+                        {/* Tags */}
+                        {event.tags && event.tags.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {event.tags.slice(0, 5).map((tag, idx) => (
+                              <span 
+                                key={idx}
+                                className="bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded text-xs"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
                         )}
                       </div>
                       

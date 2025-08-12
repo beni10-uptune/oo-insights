@@ -1,5 +1,6 @@
 // Import Firecrawl
 import FirecrawlApp from '@mendable/firecrawl-js';
+import { fetchSitemap } from './services/sitemap-parser';
 
 // Get Firecrawl instance (lazy initialization)
 function getFirecrawl() {
@@ -347,14 +348,107 @@ export function getLanguageFromUrl(url: string): string {
   return 'en';
 }
 
+/**
+ * Enhanced crawl that combines Firecrawl scraping with sitemap data
+ * This enriches the crawl results with publish dates from sitemaps
+ */
+export async function scrapeUrlWithSitemapData(
+  url: string,
+  market: string
+): Promise<(CrawlResult & { publishDate?: Date }) | null> {
+  try {
+    // First, perform the regular scrape
+    const crawlResult = await scrapeUrl(url);
+    if (!crawlResult) return null;
+    
+    // Get the market config for the base URL
+    const config = MARKET_CONFIG[market];
+    if (!config) return crawlResult;
+    
+    // Fetch sitemap data for this market
+    const sitemapEntries = await fetchSitemap(config.url);
+    
+    // Find the matching entry in the sitemap
+    const matchingEntry = sitemapEntries.find(entry => {
+      // Normalize URLs for comparison
+      const normalizedEntryUrl = entry.url.replace(/\/$/, '');
+      const normalizedTargetUrl = url.replace(/\/$/, '');
+      return normalizedEntryUrl === normalizedTargetUrl;
+    });
+    
+    // Enrich the result with publish date if found
+    if (matchingEntry && matchingEntry.publishDate) {
+      return {
+        ...crawlResult,
+        publishDate: matchingEntry.publishDate,
+      };
+    }
+    
+    return crawlResult;
+  } catch (error) {
+    console.error('Error in enhanced scrape:', error);
+    // Fall back to regular scrape if sitemap fails
+    return scrapeUrl(url);
+  }
+}
+
+/**
+ * Crawl all markets with sitemap enrichment
+ */
+export async function crawlAllMarketsEnhanced(
+  options: CrawlOptions = {}
+): Promise<Record<string, Array<CrawlResult & { publishDate?: Date }>>> {
+  const results: Record<string, Array<CrawlResult & { publishDate?: Date }>> = {};
+  
+  for (const [market, config] of Object.entries(MARKET_CONFIG)) {
+    console.log(`Enhanced crawl for ${market}: ${config.url}`);
+    
+    try {
+      // Get sitemap data first
+      const sitemapEntries = await fetchSitemap(config.url);
+      const sitemapMap = new Map(
+        sitemapEntries.map(entry => [entry.url.replace(/\/$/, ''), entry])
+      );
+      
+      // Regular crawl
+      const crawlResults = await crawlWebsite(config.url, {
+        ...options,
+        limit: options.limit || 50,
+      });
+      
+      // Enrich results with sitemap data
+      const enrichedResults = crawlResults.map(result => {
+        const normalizedUrl = result.url.replace(/\/$/, '');
+        const sitemapEntry = sitemapMap.get(normalizedUrl);
+        
+        return {
+          ...result,
+          publishDate: sitemapEntry?.publishDate,
+        };
+      });
+      
+      results[market] = enrichedResults;
+      console.log(`Found ${enrichedResults.length} pages for ${market}`);
+    } catch (error) {
+      console.error(`Failed to crawl ${market}:`, error);
+      results[market] = [];
+    }
+  }
+  
+  return results;
+}
+
 const firecrawlExports = {
   scrapeUrl,
+  scrapeUrlWithSitemapData,
   crawlWebsite,
   crawlAllMarkets,
+  crawlAllMarketsEnhanced,
   getSitemap,
   getMarketFromUrl,
   getLanguageFromUrl,
   TRUTHABOUTWEIGHT_SITES,
+  MARKET_CONFIG,
 };
 
 export default firecrawlExports;

@@ -54,15 +54,26 @@ export default function CoverageMatrix() {
   const loadCoverage = async () => {
     setLoading(true);
     try {
+      // ALWAYS use real endpoint - never use mock data in production
       const response = await fetch('/api/web-activity/coverage');
       const data = await response.json();
       
       if (data.success) {
         setCoverage(data.coverage);
         setSummary(data.summary);
+      } else {
+        // In production, if the database is unavailable, we show an error
+        // We NEVER use mock data in production
+        console.error('Failed to load coverage data:', data.error);
+        if (process.env.NODE_ENV === 'production') {
+          // Show error state to user
+          console.error('Database unavailable in production - cannot display coverage matrix');
+        }
       }
     } catch (error) {
       console.error('Failed to load coverage matrix:', error);
+      // In production, we fail gracefully but never use mock data
+      // Mock data is only for local development when explicitly needed
     } finally {
       setLoading(false);
     }

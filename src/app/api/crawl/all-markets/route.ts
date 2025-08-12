@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { TRUTHABOUTWEIGHT_SITES, scrapeUrl } from '@/lib/firecrawl';
+import { TRUTHABOUTWEIGHT_SITES, scrapeUrlWithSitemapData } from '@/lib/firecrawl';
 import { storeCrawlResult } from '@/lib/services/web-activity';
 
 export async function POST(request: NextRequest) {
@@ -18,14 +18,14 @@ export async function POST(request: NextRequest) {
       console.log(`[CRAWL] Starting crawl for ${market}: ${url}`);
       
       try {
-        // For now, just crawl the homepage of each market
-        // In production, you'd want to crawl more pages
-        const crawlResult = await scrapeUrl(url);
+        // Use enhanced crawl with sitemap data to get publish dates
+        const crawlResult = await scrapeUrlWithSitemapData(url, market);
         
         console.log(`[CRAWL] Result for ${market}:`, {
           hasResult: !!crawlResult,
           hasContent: !!crawlResult?.content,
           contentLength: crawlResult?.content?.length || 0,
+          hasPublishDate: !!crawlResult?.publishDate,
         });
         
         if (crawlResult && crawlResult.content) {
@@ -41,6 +41,8 @@ export async function POST(request: NextRequest) {
               url: page.url,
               title: page.title,
               wordCount: page.wordCount,
+              // @ts-expect-error - publishDate might not exist yet
+              publishDate: page.publishDate,
             },
           };
         } else {

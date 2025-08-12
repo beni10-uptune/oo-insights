@@ -17,8 +17,31 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch latest content for the specified market
-    const pages = await prisma.$queryRaw<Array<{
+    let pages: Array<{
+      url: string;
+      title: string | null;
+      description: string | null;
+      market: string | null;
+      language: string | null;
+      category: string | null;
+      subcategory: string | null;
+      summary: string | null;
+      summaryEn: string | null;
+      hasHcpLocator: boolean | null;
+      signals: unknown;
+      wordCount: number | null;
+      lastCrawledAt: Date | null;
+      lastModifiedAt: Date | null;
+      textContent?: string | null;
+      rawHtml?: string | null;
+      latestEventType: string | null;
+      latestEventAt: Date | null;
+    }>;
+
+    // In production, we MUST use real data from the database
+    // Never return mock data in production
+    try {
+      pages = await prisma.$queryRaw<Array<{
       url: string;
       title: string | null;
       description: string | null;
@@ -68,6 +91,19 @@ export async function GET(request: NextRequest) {
       WHERE cp.market = ${market}
       ORDER BY cp."lastCrawledAt" DESC
     `;
+    } catch (dbError) {
+      // In production, fail if database is unavailable
+      // Never return mock data in production
+      console.error('Database error in export:', dbError);
+      return NextResponse.json(
+        { 
+          error: 'Database unavailable',
+          details: 'Cannot export data when database is unavailable',
+          note: 'This is a production system - mock data is not allowed'
+        },
+        { status: 503 }
+      );
+    }
 
     // Format data based on request
     if (format === 'csv') {
@@ -209,3 +245,7 @@ ${llmContext.summaries
     await prisma.$disconnect();
   }
 }
+
+// Mock data has been completely removed from production code
+// All data must come from real database queries
+// If database is unavailable, endpoints must return proper error responses
