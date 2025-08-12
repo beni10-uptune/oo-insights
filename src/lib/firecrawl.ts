@@ -142,25 +142,42 @@ export async function scrapeUrl(url: string): Promise<CrawlResult | null> {
       formats: ['markdown', 'html', 'links'] as ("rawHtml" | "content" | "markdown" | "html" | "links" | "screenshot" | "screenshot@fullPage" | "extract" | "json" | "changeTracking")[],
     });
 
-    console.log('Scrape result:', result ? 'Success' : 'Failed');
-    console.log('Result structure:', JSON.stringify(Object.keys(result || {})));
-
-    if (result && result.success !== false) {
-      // Firecrawl v1 returns the data directly
+    console.log('Scrape result received');
+    console.log('Result type:', typeof result);
+    console.log('Result keys:', result ? Object.keys(result) : 'null');
+    
+    // Firecrawl v1.x returns data in a specific structure
+    // Check if we have a successful response
+    if (result) {
+      // The response might be wrapped in a data property or be direct
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = result as any;
-      return {
-        url: data.url || url,
-        title: data.metadata?.title || data.title || '',
-        description: data.metadata?.description || data.description,
-        content: data.markdown || data.content || '',
-        markdown: data.markdown,
-        html: data.html,
-        metadata: data.metadata || {},
-        links: data.links || [],
-        screenshot: data.screenshot,
-        createdAt: new Date().toISOString(),
-      };
+      const responseData = (result as any).data || result;
+      
+      console.log('Response data keys:', Object.keys(responseData || {}));
+      console.log('Has markdown:', !!responseData?.markdown);
+      console.log('Markdown length:', responseData?.markdown?.length || 0);
+      
+      // Only return if we actually have content
+      if (responseData?.markdown || responseData?.content || responseData?.html) {
+        return {
+          url: responseData.url || url,
+          title: responseData.metadata?.title || responseData.title || '',
+          description: responseData.metadata?.description || responseData.description,
+          content: responseData.markdown || responseData.content || '',
+          markdown: responseData.markdown,
+          html: responseData.html,
+          metadata: responseData.metadata || {},
+          links: responseData.links || [],
+          screenshot: responseData.screenshot,
+          createdAt: new Date().toISOString(),
+        };
+      } else {
+        console.error('No content in response:', {
+          hasMarkdown: !!responseData?.markdown,
+          hasContent: !!responseData?.content,
+          hasHtml: !!responseData?.html,
+        });
+      }
     }
 
     return null;

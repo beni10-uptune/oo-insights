@@ -15,15 +15,24 @@ export async function POST(request: NextRequest) {
       
       if (!url) continue;
       
-      console.log(`Crawling ${market}: ${url}`);
+      console.log(`[CRAWL] Starting crawl for ${market}: ${url}`);
       
       try {
         // For now, just crawl the homepage of each market
         // In production, you'd want to crawl more pages
         const crawlResult = await scrapeUrl(url);
         
-        if (crawlResult) {
+        console.log(`[CRAWL] Result for ${market}:`, {
+          hasResult: !!crawlResult,
+          hasContent: !!crawlResult?.content,
+          contentLength: crawlResult?.content?.length || 0,
+        });
+        
+        if (crawlResult && crawlResult.content) {
+          console.log(`[CRAWL] Storing result for ${market}...`);
           const page = await storeCrawlResult(crawlResult);
+          console.log(`[CRAWL] Stored with ID: ${page.id}`);
+          
           results[market] = {
             success: true,
             pagesCrawled: 1,
@@ -35,9 +44,15 @@ export async function POST(request: NextRequest) {
             },
           };
         } else {
+          console.log(`[CRAWL] No content received for ${market}`);
           results[market] = {
             success: false,
-            error: 'Failed to crawl',
+            error: 'No content received from Firecrawl',
+            debug: {
+              hasResult: !!crawlResult,
+              hasContent: !!crawlResult?.content,
+              resultKeys: crawlResult ? Object.keys(crawlResult) : [],
+            },
           };
         }
       } catch (error) {
