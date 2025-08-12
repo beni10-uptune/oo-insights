@@ -348,7 +348,8 @@ export async function storePageContent(results: Array<CrawlResult & {
             summaryEn: result.summaryEn,
             category: result.category,
             subcategory: result.subcategory,
-            signals: result.signals,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            signals: result.signals as any,
             hasHcpLocator: result.hasHcpLocator,
           },
         });

@@ -1,6 +1,17 @@
-import { MARKET_CONFIG, scrapeUrl, crawlWebsite } from '@/lib/firecrawl';
+import { MARKET_CONFIG, scrapeUrl, crawlWebsite, type CrawlResult } from '@/lib/firecrawl';
 import { storePageContent } from '@/lib/services/web-activity';
 import { summarizeContent, classifyContent } from '@/lib/services/ai-analysis';
+
+type EnhancedCrawlResult = CrawlResult & {
+  market?: string;
+  language?: string;
+  summary?: string;
+  summaryEn?: string;
+  category?: string;
+  subcategory?: string;
+  signals?: Record<string, unknown>;
+  hasHcpLocator?: boolean;
+};
 
 interface CrawlMarketOptions {
   market: string;
@@ -73,7 +84,7 @@ export async function crawlMarket({
         result.pagesFound = 1;
         
         // Process the page
-        const processedData = {
+        const processedData: EnhancedCrawlResult = {
           ...pageData,
           market,
           language: config.language,
@@ -115,7 +126,7 @@ export async function crawlMarket({
       // Process each page
       for (const page of crawlResults) {
         try {
-          const processedData = {
+          const processedData: EnhancedCrawlResult = {
             ...page,
             market,
             language: config.language,

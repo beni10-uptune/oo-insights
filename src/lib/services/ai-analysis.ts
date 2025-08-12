@@ -112,7 +112,7 @@ export async function summarizeContent(
         ENGLISH: [summary in English]`;
 
     const result = await model.generateContent(prompt);
-    const response = result.response.text();
+    const response = result.response.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
     if (isEnglish) {
       return {
@@ -121,8 +121,8 @@ export async function summarizeContent(
       };
     } else {
       // Parse the two summaries
-      const originalMatch = response.match(/ORIGINAL:\s*(.*?)(?=ENGLISH:|$)/s);
-      const englishMatch = response.match(/ENGLISH:\s*(.*?)$/s);
+      const originalMatch = response.match(/ORIGINAL:\s*([\s\S]*?)(?=ENGLISH:|$)/);
+      const englishMatch = response.match(/ENGLISH:\s*([\s\S]*?)$/);
       
       return {
         original: originalMatch?.[1]?.trim() || response.trim(),
@@ -186,7 +186,7 @@ Respond in JSON format:
 }`;
 
     const result = await model.generateContent(prompt);
-    const response = result.response.text();
+    const response = result.response.candidates?.[0]?.content?.parts?.[0]?.text || '';
     
     // Extract JSON from response
     const jsonMatch = response.match(/\{[\s\S]*\}/);
@@ -284,7 +284,7 @@ Format as JSON:
 }`;
 
     const result = await model.generateContent(prompt);
-    const response = result.response.text();
+    const response = result.response.candidates?.[0]?.content?.parts?.[0]?.text || '';
     
     const jsonMatch = response.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
