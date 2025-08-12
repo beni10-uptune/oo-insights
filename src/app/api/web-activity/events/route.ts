@@ -26,17 +26,18 @@ export async function GET(request: NextRequest) {
     });
     
     // Ensure dates are properly serialized
-    const serializedEvents = events.map(event => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const serializedEvents = events.map((event: any) => ({
       ...event,
       crawledAt: event.eventAt?.toISOString() || null,
       createdAt: event.createdAt?.toISOString() || null,
       eventAt: event.eventAt?.toISOString() || null,
       page: event.page ? {
         ...event.page,
-        createdAt: event.page.createdAt?.toISOString() || null,
-        updatedAt: event.page.updatedAt?.toISOString() || null,
-        lastCrawledAt: event.page.lastCrawledAt?.toISOString() || null,
-        lastModifiedAt: event.page.lastModifiedAt?.toISOString() || null,
+        createdAt: (event.page as any).createdAt?.toISOString() || null,
+        updatedAt: (event.page as any).updatedAt?.toISOString() || null,
+        lastCrawledAt: (event.page as any).lastCrawledAt?.toISOString() || null,
+        lastModifiedAt: (event.page as any).lastModifiedAt?.toISOString() || null,
       } : null
     }));
     

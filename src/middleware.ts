@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 // import { getToken } from 'next-auth/jwt';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function middleware(request: NextRequest) {
   // TEMPORARILY DISABLED - Authentication is currently disabled to fix redirect loop
   // Uncomment the code below once Google OAuth credentials are configured in Vercel
