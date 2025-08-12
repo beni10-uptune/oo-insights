@@ -339,20 +339,26 @@ export async function storePageContent(results: Array<CrawlResult & {
     try {
       const page = await storeCrawlResult(result);
       
-      // Update with enhanced fields if present
+      // Update with enhanced fields if present (only if columns exist)
+      // TODO: Remove this check after migration is run
       if (result.summary || result.summaryEn || result.category) {
-        await prisma.contentPage.update({
-          where: { id: page.id },
-          data: {
-            summary: result.summary,
-            summaryEn: result.summaryEn,
-            category: result.category,
-            subcategory: result.subcategory,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            signals: result.signals as any,
-            hasHcpLocator: result.hasHcpLocator,
-          },
-        });
+        try {
+          await prisma.contentPage.update({
+            where: { id: page.id },
+            data: {
+              summary: result.summary,
+              summaryEn: result.summaryEn,
+              category: result.category,
+              subcategory: result.subcategory,
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              signals: result.signals as any,
+              hasHcpLocator: result.hasHcpLocator,
+            },
+          });
+        } catch (updateError) {
+          console.log('Enhanced fields not yet available in database:', updateError);
+          // Continue without enhanced fields - basic crawl still works
+        }
       }
       
       storedPages.push(page);
