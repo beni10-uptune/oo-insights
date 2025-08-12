@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
       cacheTime.setMinutes(cacheTime.getMinutes() - 15);
       
       const cachedData = await prisma.$queryRaw`
-        SELECT brand, date, value
+        SELECT brand, date, interest_index as value
         FROM trends_series
         WHERE market = ${market}
           AND date >= ${startDate}
@@ -78,11 +78,11 @@ export async function GET(request: NextRequest) {
       for (const brandSeries of freshData) {
         for (const point of brandSeries.points) {
           await prisma.$executeRaw`
-            INSERT INTO trends_series (market, brand, date, value, timeframe)
-            VALUES (${market}, ${brandSeries.brand}, ${new Date(point.date).toISOString().split('T')[0]}, ${point.value}, ${window})
-            ON CONFLICT (market, brand, date, timeframe) 
+            INSERT INTO trends_series (market, language, brand, date, interest_index)
+            VALUES (${market}, ${lang}, ${brandSeries.brand}, ${new Date(point.date).toISOString().split('T')[0]}, ${point.value})
+            ON CONFLICT (market, brand, date) 
             DO UPDATE SET 
-              value = ${point.value}
+              interest_index = ${point.value}
           `;
         }
       }
@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
       
       // Return any cached data we have
       const fallbackData = await prisma.$queryRaw`
-        SELECT brand, date, value
+        SELECT brand, date, interest_index as value
         FROM trends_series
         WHERE market = ${market}
           AND date >= ${startDate}
@@ -157,7 +157,7 @@ function formatSeriesData(data: Array<{ brand: string; date: Date; value: number
       brandMap.set(row.brand, []);
     }
     brandMap.get(row.brand)!.push({
-      date: row.date.toISOString().split('T')[0],
+      date: typeof row.date === 'string' ? row.date : row.date.toISOString().split('T')[0],
       value: row.value,
     });
   }

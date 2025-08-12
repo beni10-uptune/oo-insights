@@ -48,12 +48,12 @@ export async function GET(request: NextRequest) {
           
           await prisma.$executeRaw`
             INSERT INTO trends_series (
-              market, brand, date, value, timeframe
+              market, language, brand, date, interest_index
             ) VALUES (
-              ${market}, ${brand}, ${dateStr}, ${Math.round(value)}, '30d'
+              ${market}, 'en', ${brand}, ${dateStr}, ${Math.round(value)}
             )
-            ON CONFLICT (market, brand, date, timeframe) 
-            DO UPDATE SET value = ${Math.round(value)}
+            ON CONFLICT (market, brand, date) 
+            DO UPDATE SET interest_index = ${Math.round(value)}
           `;
           results.series++;
         }
