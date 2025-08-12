@@ -26,7 +26,17 @@ export async function GET() {
     console.log('Full result:', JSON.stringify(result, null, 2));
     
     // Check different possible structures
-    const analysis = {
+    const analysis: {
+      hasResult: boolean;
+      isObject: boolean;
+      topLevelKeys: string[];
+      hasSuccess: boolean;
+      hasData: boolean;
+      hasMarkdown: boolean;
+      hasContent: boolean;
+      hasMetadata: boolean;
+      dataKeys?: string[];
+    } = {
       hasResult: !!result,
       isObject: typeof result === 'object',
       topLevelKeys: result ? Object.keys(result) : [],
