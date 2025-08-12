@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
             INSERT INTO trends_series (
               market, language, brand, date, interest_index
             ) VALUES (
-              ${market}, 'en', ${brand}, ${dateStr}, ${Math.round(value)}
+              ${market}, 'en', ${brand}, ${dateStr}::date, ${Math.round(value)}
             )
             ON CONFLICT (market, brand, date) 
             DO UPDATE SET interest_index = ${Math.round(value)}
@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
               ) VALUES (
                 ${market}, 'en', ${brand}, ${query}, '30d',
                 ${growth}, ${risingScore}, ${volume}, ${Math.random() * 5},
-                ${theme}, ${0.9}, ${new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000)}, ${now}
+                ${theme}, ${0.9}, ${new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString()}::timestamp, ${now.toISOString()}::timestamp
               )
               ON CONFLICT (market, brand, query, timeframe, period_end)
               DO UPDATE SET 
@@ -165,7 +165,7 @@ export async function GET(request: NextRequest) {
             theme, growth_pct, timeframe, period_end
           ) VALUES (
             ${market}, ${brand}, ${query}, ${volume}, ${Math.random() * 10},
-            ${theme}, ${growth}, '30d', ${now}
+            ${theme}, ${growth}, '30d', ${now.toISOString()}::timestamp
           )
           ON CONFLICT (market, brand, query, timeframe, period_end)
           DO UPDATE SET 
