@@ -3,6 +3,7 @@ import FirecrawlApp from '@mendable/firecrawl-js';
 import { PrismaClient } from '@prisma/client';
 
 export async function GET() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const diagnostics: Record<string, any> = {
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV,
@@ -29,7 +30,9 @@ export async function GET() {
       
       diagnostics.firecrawl.testScrape = {
         success: !!result,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         hasContent: !!(result as any)?.markdown,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         contentLength: (result as any)?.markdown?.length || 0,
       };
       console.log('[DIAGNOSE] Firecrawl test result:', diagnostics.firecrawl.testScrape);
@@ -69,7 +72,7 @@ export async function GET() {
     diagnostics.database.connection = {
       success: false,
       error: String(error),
-      errorMessage: (error as any)?.message,
+      errorMessage: (error as Error)?.message,
     };
     console.error('[DIAGNOSE] Database error:', error);
   }

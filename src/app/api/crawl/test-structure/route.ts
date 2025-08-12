@@ -38,15 +38,21 @@ export async function GET() {
     };
     
     // If there's a data property, check its structure
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if ((result as any)?.data) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       analysis.dataKeys = Object.keys((result as any).data);
     }
     
     // Try to extract content in different ways
     const content = {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       directMarkdown: (result as any)?.markdown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       directContent: (result as any)?.content,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       dataMarkdown: (result as any)?.data?.markdown,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       dataContent: (result as any)?.data?.content,
     };
     
@@ -57,13 +63,14 @@ export async function GET() {
       sampleResult: JSON.stringify(result).substring(0, 500),
       fullResult: result,
     });
-  } catch (error: any) {
+  } catch (error) {
+    const err = error as Error & { response?: { data?: unknown } };
     console.error('Test error:', error);
     return NextResponse.json({
       error: 'Test failed',
-      message: error.message,
-      stack: error.stack,
-      response: error.response?.data,
+      message: err.message,
+      stack: err.stack,
+      response: err.response?.data,
     });
   }
 }

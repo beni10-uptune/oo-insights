@@ -30,7 +30,7 @@ export async function GET() {
     let data;
     try {
       data = JSON.parse(responseText);
-    } catch (e) {
+    } catch {
       return NextResponse.json({
         error: 'Invalid JSON response',
         responseText: responseText.substring(0, 500),
@@ -51,11 +51,12 @@ export async function GET() {
       sampleData: JSON.stringify(data).substring(0, 500),
       fullResponse: data,
     });
-  } catch (error: any) {
+  } catch (error) {
+    const err = error as Error;
     return NextResponse.json({
       error: 'Request failed',
-      message: error.message,
-      stack: error.stack,
+      message: err.message,
+      stack: err.stack,
     });
   }
 }
