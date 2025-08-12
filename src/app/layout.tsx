@@ -19,12 +19,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.className} h-screen overflow-hidden`}>
+      <body className={`${inter.className} min-h-screen`}>
         <AuthSessionProvider>
           <SidebarProvider>
             <AppSidebar />
             <SidebarInset>
-              <main className="w-full h-full overflow-auto p-6">
+              <main className="w-full min-h-screen p-6">
                 {children}
               </main>
             </SidebarInset>

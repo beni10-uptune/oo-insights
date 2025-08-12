@@ -25,13 +25,19 @@ export async function GET(request: NextRequest) {
       limit,
     });
     
-    // Ensure dates are properly serialized
+    // Ensure dates are properly serialized and all fields are included
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const serializedEvents = events.map((event: any) => ({
       ...event,
       crawledAt: event.eventAt?.toISOString() || null,
       createdAt: event.createdAt?.toISOString() || null,
       eventAt: event.eventAt?.toISOString() || null,
+      // Include all page fields if page exists
+      ...(event.page ? {
+        ...event.page,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        publishDate: (event.page as any).publishDate?.toISOString() || null,
+      } : {}),
       page: event.page ? {
         ...event.page,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -42,6 +48,8 @@ export async function GET(request: NextRequest) {
         lastCrawledAt: (event.page as any).lastCrawledAt?.toISOString() || null,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         lastModifiedAt: (event.page as any).lastModifiedAt?.toISOString() || null,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        publishDate: (event.page as any).publishDate?.toISOString() || null,
       } : null
     }));
     
