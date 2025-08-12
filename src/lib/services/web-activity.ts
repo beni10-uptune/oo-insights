@@ -330,7 +330,7 @@ export async function storePageContent(results: Array<CrawlResult & {
   summaryEn?: string;
   category?: string;
   subcategory?: string;
-  signals?: any;
+  signals?: Record<string, unknown>;
   hasHcpLocator?: boolean;
 }>) {
   const storedPages = [];
