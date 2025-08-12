@@ -1,12 +1,15 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { crawlAllEucanMarkets } from '@/lib/services/enhanced-crawl';
-import { headers } from 'next/headers';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     // Verify the request is from Vercel Cron
-    const authHeader = headers().get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    const authHeader = request.headers.get('authorization');
+    
+    // Check if CRON_SECRET is configured
+    if (!process.env.CRON_SECRET) {
+      console.warn('CRON_SECRET not configured, skipping auth check');
+    } else if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
