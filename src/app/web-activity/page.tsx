@@ -13,7 +13,7 @@ export default function WebActivityPage() {
       <div className="mb-6">
         <h1 className="text-3xl font-bold mb-2">Web Activity Intelligence</h1>
         <p className="text-gray-600 dark:text-gray-400">
-          Monitor truthaboutweight sites across 26 EUCAN markets with AI-powered insights
+          Monitor truthaboutweight sites across 26 EUCAN markets • Crawled daily at 9 AM CET
         </p>
       </div>
 

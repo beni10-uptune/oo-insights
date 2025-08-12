@@ -189,7 +189,7 @@ export default function WebActivityDashboard() {
             Web Activity Tracker
           </h2>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Monitor changes across truthaboutweight sites • Core markets: UK, IT, ES, FR, DE, PL, CA
+            Monitor changes across truthaboutweight sites • Last updated: {stats?.lastCrawl && !isNaN(new Date(stats.lastCrawl).getTime()) ? new Date(stats.lastCrawl).toLocaleDateString() : 'Never'}
           </p>
         </div>
         
@@ -265,7 +265,7 @@ export default function WebActivityDashboard() {
                     ? formatDistanceToNow(new Date(stats.lastCrawl), { addSuffix: true }) 
                     : 'Never'}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">Auto-crawls every 6h</p>
+                <p className="text-xs text-gray-500 mt-1">Crawled daily at 9 AM CET</p>
               </div>
               <Clock className="h-8 w-8 text-orange-500" />
             </div>

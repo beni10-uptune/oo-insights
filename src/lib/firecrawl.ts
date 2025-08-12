@@ -1,15 +1,18 @@
 // Import Firecrawl
 import FirecrawlApp from '@mendable/firecrawl-js';
 
-// Initialize Firecrawl with API key
-const apiKey = process.env.FIRECRAWL_API_KEY;
-if (!apiKey) {
-  console.warn('FIRECRAWL_API_KEY not found in environment variables');
+// Get Firecrawl instance (lazy initialization)
+function getFirecrawl() {
+  const apiKey = process.env.FIRECRAWL_API_KEY;
+  if (!apiKey) {
+    console.error('FIRECRAWL_API_KEY not found in environment variables');
+    throw new Error('FIRECRAWL_API_KEY is required');
+  }
+  
+  return new FirecrawlApp({
+    apiKey: apiKey,
+  });
 }
-
-const firecrawl = new FirecrawlApp({
-  apiKey: apiKey || '',
-});
 
 // EUCAN Markets - Comprehensive list with correct URLs
 export const TRUTHABOUTWEIGHT_SITES = {
@@ -132,29 +135,28 @@ export interface CrawlOptions {
 export async function scrapeUrl(url: string): Promise<CrawlResult | null> {
   try {
     console.log(`Scraping URL: ${url}`);
-    console.log('Using API key:', apiKey ? 'Found' : 'Missing');
+    const firecrawl = getFirecrawl();
+    console.log('Firecrawl initialized');
     
     const result = await firecrawl.scrapeUrl(url, {
       formats: ['markdown', 'html', 'links'] as ("rawHtml" | "content" | "markdown" | "html" | "links" | "screenshot" | "screenshot@fullPage" | "extract" | "json" | "changeTracking")[],
     });
 
     console.log('Scrape result:', result ? 'Success' : 'Failed');
+    console.log('Result structure:', JSON.stringify(Object.keys(result || {})));
 
-    if (result) {
-      // Handle both result.data and direct result structures
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const data = (result as any).data || result;
-      
+    if (result && result.success !== false) {
+      // Firecrawl v1 returns the data directly
       return {
-        url: data.url || url,
-        title: data.metadata?.title || data.title || '',
-        description: data.metadata?.description || data.description,
-        content: data.markdown || data.content || '',
-        markdown: data.markdown,
-        html: data.html,
-        metadata: data.metadata || {},
-        links: data.links || [],
-        screenshot: data.screenshot,
+        url: result.url || url,
+        title: result.metadata?.title || result.title || '',
+        description: result.metadata?.description || result.description,
+        content: result.markdown || result.content || '',
+        markdown: result.markdown,
+        html: result.html,
+        metadata: result.metadata || {},
+        links: result.links || [],
+        screenshot: result.screenshot,
         createdAt: new Date().toISOString(),
       };
     }
@@ -191,6 +193,7 @@ export async function crawlWebsite(
       },
     };
 
+    const firecrawl = getFirecrawl();
     const crawlResult = await firecrawl.crawlUrl(url, crawlOptions);
     
     if (crawlResult.success && crawlResult.data) {
