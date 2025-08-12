@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Clock, Globe, Activity, TrendingUp, FileText, Link, Search, Calendar, Filter, RefreshCw, AlertCircle } from 'lucide-react';
+import { Clock, Globe, Activity, TrendingUp, FileText, Link, Calendar, RefreshCw, AlertCircle } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 interface WebActivityEvent {
@@ -69,6 +69,7 @@ export default function WebActivityDashboard() {
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMarket, selectedType, timeRange]);
 
   const loadData = async () => {
@@ -345,7 +346,7 @@ export default function WebActivityDashboard() {
             <div className="p-8 text-center">
               <div className="text-gray-500 mb-4">
                 <Globe className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                No activity found. Click "Crawl Core Markets" to start tracking.
+                No activity found. Click &quot;Crawl Core Markets&quot; to start tracking.
               </div>
               <div className="text-sm text-gray-400">
                 This will monitor: UK 🇬🇧, Italy 🇮🇹, Spain 🇪🇸, France 🇫🇷, Germany 🇩🇪, Poland 🇵🇱, Canada 🇨🇦

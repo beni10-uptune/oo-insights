@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
       }
     }
     
-    const successCount = Object.values(results).filter(r => (r as any).success).length;
+    const successCount = Object.values(results).filter(r => (r as Record<string, boolean>).success).length;
     
     return NextResponse.json({
       success: true,
