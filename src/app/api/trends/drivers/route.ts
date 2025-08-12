@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     }
     
     // Check for cached related queries
-    const cachedQueries = await prisma.$queryRaw`
+    let queryStr = `
       SELECT 
         query,
         brand,
@@ -49,14 +49,24 @@ export async function GET(request: NextRequest) {
         theme,
         theme_confidence
       FROM related_queries
-      WHERE market = ${market}
-        AND timeframe = ${window}
-        AND period_end >= ${startDate}
-        ${brand ? prisma.$queryRawUnsafe(`AND brand = '${brand}'`) : prisma.$queryRawUnsafe('')}
-        ${theme ? prisma.$queryRawUnsafe(`AND theme = '${theme}'`) : prisma.$queryRawUnsafe('')}
-      ORDER BY rising_score DESC
-      LIMIT 100
-    ` as Array<{
+      WHERE market = $1
+        AND timeframe = $2
+        AND period_end >= $3
+    `;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const params: any[] = [market, window, startDate];
+    
+    if (brand) {
+      params.push(brand);
+      queryStr += ` AND brand = $${params.length}`;
+    }
+    if (theme) {
+      params.push(theme);
+      queryStr += ` AND theme = $${params.length}`;
+    }
+    queryStr += ' ORDER BY rising_score DESC LIMIT 100';
+    
+    const cachedQueries = await prisma.$queryRawUnsafe(queryStr, ...params) as Array<{
       query: string;
       brand: string | null;
       growth_pct: number;
@@ -119,21 +129,21 @@ export async function GET(request: NextRequest) {
     }
     
     // Calculate theme rollups from cached data
-    const themeRollups = await prisma.$queryRaw`
+    const themeRollups = await prisma.$queryRawUnsafe(`
       SELECT 
         theme,
         SUM(rising_score) as rising_score,
         SUM(volume_monthly) as volume_sum,
         COUNT(*) as query_count
       FROM related_queries
-      WHERE market = ${market}
-        AND timeframe = ${window}
-        AND period_end >= ${startDate}
+      WHERE market = $1
+        AND timeframe = $2
+        AND period_end >= $3
         AND theme IS NOT NULL
       GROUP BY theme
       ORDER BY SUM(rising_score) DESC
       LIMIT 10
-    ` as Array<{
+    `, market, window, startDate) as Array<{
       theme: string;
       rising_score: number;
       volume_sum: number;
