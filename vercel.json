@@ -6,10 +6,17 @@
     {
       "path": "/api/cron/daily-crawl",
       "schedule": "0 8 * * *"
+    },
+    {
+      "path": "/api/cron/trends-daily",
+      "schedule": "0 9 * * *"
     }
   ],
   "functions": {
     "src/app/api/cron/daily-crawl/route.ts": {
+      "maxDuration": 300
+    },
+    "src/app/api/cron/trends-daily/route.ts": {
       "maxDuration": 300
     },
     "src/app/api/crawl/enhanced/route.ts": {
