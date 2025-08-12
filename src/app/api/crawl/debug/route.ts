@@ -24,7 +24,8 @@ export async function GET() {
     console.log('Attempting to scrape:', testUrl);
     
     try {
-      const result = await firecrawl.scrapeUrl(testUrl, {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const result: any = await firecrawl.scrapeUrl(testUrl, {
         formats: ['markdown', 'html'],
       });
       
@@ -41,24 +42,26 @@ export async function GET() {
         contentLength: result?.markdown?.length || result?.content?.length || 0,
         fullResult: result,
       });
-    } catch (scrapeError: any) {
+    } catch (scrapeError) {
       console.error('Scrape error:', scrapeError);
+      const error = scrapeError as Error & { response?: { data?: unknown } };
       return NextResponse.json({
         success: false,
         error: 'Scrape failed',
-        errorMessage: scrapeError.message,
-        errorResponse: scrapeError.response?.data,
+        errorMessage: error.message,
+        errorResponse: error.response?.data,
         apiKeyLength: apiKey.length,
         apiKeyPrefix: apiKey.substring(0, 10),
       });
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error('Debug endpoint error:', error);
+    const err = error as Error;
     return NextResponse.json({
       success: false,
       error: 'Initialization failed',
-      errorMessage: error.message,
-      stack: error.stack,
+      errorMessage: err.message,
+      stack: err.stack,
     });
   }
 }

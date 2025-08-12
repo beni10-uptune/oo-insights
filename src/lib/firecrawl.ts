@@ -147,16 +147,18 @@ export async function scrapeUrl(url: string): Promise<CrawlResult | null> {
 
     if (result && result.success !== false) {
       // Firecrawl v1 returns the data directly
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const data = result as any;
       return {
-        url: result.url || url,
-        title: result.metadata?.title || result.title || '',
-        description: result.metadata?.description || result.description,
-        content: result.markdown || result.content || '',
-        markdown: result.markdown,
-        html: result.html,
-        metadata: result.metadata || {},
-        links: result.links || [],
-        screenshot: result.screenshot,
+        url: data.url || url,
+        title: data.metadata?.title || data.title || '',
+        description: data.metadata?.description || data.description,
+        content: data.markdown || data.content || '',
+        markdown: data.markdown,
+        html: data.html,
+        metadata: data.metadata || {},
+        links: data.links || [],
+        screenshot: data.screenshot,
         createdAt: new Date().toISOString(),
       };
     }
