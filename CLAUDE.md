@@ -121,8 +121,21 @@ npx prisma generate
 - AI Test: `/ai-test`
 - Crawl All Markets: `/api/crawl/all-markets` (POST)
 
+## Code Quality Guidelines
+When working on this project, please follow these principles:
+- **Think in to-do lists before acting** - Plan your approach with TodoWrite tool
+- **Always analyze relevant files for context** - Read existing code before modifying
+- **Keep code changes as simple as possible** - Avoid over-engineering
+- **Validate all fixes and changes** - Run `npm run lint` and `npm run typecheck`
+- **Write clean, simple, modular code** - Follow existing patterns in the codebase
+- **Prioritize readability over micro-optimizations** - Code should be easy to understand
+- **Write lots of comments** - Explain complex logic and business rules
+- **Avoid being lazy; implement the full fix** - Don't leave partial implementations
+- **If unsure, ask clarifying questions** - Better to confirm than assume
+
 ## Important Notes
 - Always prioritize core markets in features
 - Use market-specific language codes (en-GB for UK, fr-FR for France, etc.)
 - Ensure GDPR compliance for European markets
 - Test features with actual market URLs before deployment
+- **ALWAYS run `npm run lint` and `npm run typecheck` after completing tasks**
