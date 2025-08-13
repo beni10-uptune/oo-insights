@@ -162,7 +162,7 @@ export async function GET(request: NextRequest) {
     
     const MARKETS = ['UK', 'FR', 'DE', 'IT', 'ES', 'CA', 'PL'];
     const BRANDS = ['Wegovy', 'Ozempic', 'Mounjaro'];
-    let seedCount = { series: 0, queries: 0, volume: 0 };
+    const seedCount = { series: 0, queries: 0, volume: 0 };
     
     // Seed trends_series data (30 days of data)
     for (const market of MARKETS) {

@@ -150,7 +150,6 @@ export async function GET(request: NextRequest) {
       for (const query of highVolumeQueries) {
         const brand = BRANDS.find(b => query.toLowerCase().includes(b.toLowerCase())) || 'Unknown';
         const volume = Math.floor(Math.random() * 100000) + 10000;
-        const growth = Math.random() * 60 - 20; // -20% to +40%
         
         // Determine theme based on query
         let theme = 'brand';
