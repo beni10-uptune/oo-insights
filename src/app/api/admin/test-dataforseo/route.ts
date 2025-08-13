@@ -30,9 +30,8 @@ export async function GET(request: NextRequest) {
     
     if (hasLogin && hasPassword) {
       try {
-        const { getDataForSEOClient } = await import('@/lib/dataforseo/client');
-        const client = getDataForSEOClient();
-        clientStatus = '✅ Client initialized';
+        await import('@/lib/dataforseo/client');
+        clientStatus = '✅ Client module loaded';
         
         // Step 3: Make a simple API call to test credentials
         try {
