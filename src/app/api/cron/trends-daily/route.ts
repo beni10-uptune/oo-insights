@@ -1,190 +1,95 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
-import { getDataForSEOClient, MARKET_LOCATIONS } from '@/lib/dataforseo/client';
 
 const prisma = new PrismaClient();
 
 export async function POST(request: NextRequest) {
+  const startTime = Date.now();
+  
   try {
     // Verify cron secret
     const authHeader = request.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET;
+    const cronSecret = process.env.CRON_SECRET || 'your-secure-cron-secret-here';
     
-    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+    if (authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json(
-        { error: 'Unauthorized' },
+        { error: 'Unauthorized - Invalid cron secret' },
         { status: 401 }
       );
     }
     
     console.log('[CRON] Starting daily trends data fetch at', new Date().toISOString());
     
-    const client = getDataForSEOClient();
-    const brands = ['Wegovy', 'Ozempic', 'Mounjaro'];
-    const timeWindows = ['7d', '30d', '90d'] as const;
-    const results = {
-      success: 0,
-      failed: 0,
-      markets: [] as string[],
-    };
-    
-    // Process each market
-    for (const [marketCode, marketInfo] of Object.entries(MARKET_LOCATIONS)) {
-      console.log(`[CRON] Processing market: ${marketCode}`);
-      
-      try {
-        // Fetch trends series for each brand
-        for (const brand of brands) {
-          try {
-            const series = await client.getTrendsSeries(
-              marketCode as keyof typeof MARKET_LOCATIONS,
-              [brand],
-              '30d'
-            );
-            
-            // Store series data
-            for (const s of series) {
-              const points = s.points || [];
-              for (const point of points) {
-                await prisma.$executeRaw`
-                  INSERT INTO trends_series (
-                    market, language, brand, date, interest_index
-                  ) VALUES (
-                    ${marketCode}, ${marketInfo.language_code}, ${s.brand}, ${point.date}::date, ${point.value}
-                  )
-                  ON CONFLICT (market, brand, date) 
-                  DO UPDATE SET 
-                    interest_index = ${point.value},
-                    updated_at = CURRENT_TIMESTAMP
-                `;
-              }
-            }
-          } catch (brandError) {
-            console.error(`[CRON] Error fetching ${brand} for ${marketCode}:`, brandError);
-          }
-        }
-        
-        // Fetch related queries for each time window
-        for (const window of timeWindows) {
-          for (const brand of brands) {
-            try {
-              const queries = await client.getRelatedQueries(
-                marketCode as keyof typeof MARKET_LOCATIONS,
-                brand,
-                window,
-                100
-              );
-              
-              const endDate = new Date();
-              const startDate = new Date();
-              switch (window) {
-                case '7d':
-                  startDate.setDate(startDate.getDate() - 7);
-                  break;
-                case '30d':
-                  startDate.setDate(startDate.getDate() - 30);
-                  break;
-                case '90d':
-                  startDate.setDate(startDate.getDate() - 90);
-                  break;
-              }
-              
-              // Store related queries
-              for (const q of queries) {
-                await prisma.$executeRaw`
-                  INSERT INTO related_queries (
-                    market, language, brand, query, timeframe,
-                    growth_pct, rising_score, volume_monthly, cpc,
-                    theme, theme_confidence, period_start, period_end
-                  ) VALUES (
-                    ${marketCode}, ${marketInfo.language_code}, ${brand}, ${q.query}, ${window},
-                    ${q.growth_pct}, ${q.rising_score}, ${q.volume_monthly}, ${q.cpc},
-                    ${q.theme}, ${q.theme_confidence}, ${startDate}, ${endDate}
-                  )
-                  ON CONFLICT (market, brand, query, timeframe, period_end)
-                  DO UPDATE SET 
-                    growth_pct = ${q.growth_pct},
-                    rising_score = ${q.rising_score},
-                    volume_monthly = ${q.volume_monthly}
-                `;
-              }
-            } catch (queryError) {
-              console.error(`[CRON] Error fetching queries for ${brand} ${window} in ${marketCode}:`, queryError);
-            }
-          }
-        }
-        
-        // Fetch top volume queries
-        for (const brand of brands) {
-          try {
-            const volumeQueries = await client.getTopVolumeQueries(
-              marketCode as keyof typeof MARKET_LOCATIONS,
-              brand,
-              20
-            );
-            
-            for (const q of volumeQueries) {
-              await prisma.$executeRaw`
-                INSERT INTO top_volume_queries (
-                  market, language, query, volume_monthly, cpc,
-                  brand_hint
-                ) VALUES (
-                  ${marketCode}, ${marketInfo.language_code}, ${q.keyword}, ${q.volume}, ${q.cpc},
-                  ${brand}
-                )
-                ON CONFLICT DO NOTHING
-              `;
-            }
-          } catch (volumeError) {
-            console.error(`[CRON] Error fetching volume for ${brand} in ${marketCode}:`, volumeError);
-          }
-        }
-        
-        results.success++;
-        results.markets.push(marketCode);
-      } catch (marketError) {
-        console.error(`[CRON] Error processing market ${marketCode}:`, marketError);
-        results.failed++;
-      }
-    }
-    
-    // Log job completion
-    await prisma.$executeRaw`
-      INSERT INTO jobs_trends (
-        market, language, job_type, status, error_message
-      ) VALUES (
-        'ALL', 'multi', 'trends', 'success', NULL
-      )
-    `;
-    
-    console.log('[CRON] Daily trends fetch completed:', results);
-    
-    return NextResponse.json({
-      success: true,
-      message: 'Daily trends data fetch completed',
-      results,
-    });
-  } catch (error) {
-    console.error('[CRON] Fatal error in trends daily job:', error);
-    
-    // Log job failure
+    // Call the fetch-all-markets endpoint to get fresh data
     try {
+      const baseUrl = process.env.NEXTAUTH_URL || 'https://oo.mindsparkdigitallabs.com';
+      const fetchUrl = `${baseUrl}/api/admin/fetch-all-markets?secret=fetch-all-markets-2024`;
+      
+      console.log('[CRON] Calling fetch-all-markets endpoint...');
+      
+      const response = await fetch(fetchUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        // Set a long timeout since this fetches all markets
+        signal: AbortSignal.timeout(600000) // 10 minutes timeout
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Fetch failed with status ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      // Log job completion
       await prisma.$executeRaw`
         INSERT INTO jobs_trends (
-          market, language, job_type, status, error_message
+          market, language, job_type, status, completed_at
         ) VALUES (
-          'ALL', 'multi', 'trends', 'failed', 
-          ${error instanceof Error ? error.message : 'Unknown error'}
+          'ALL', 'multi', 'daily_cron', 'success', CURRENT_TIMESTAMP
         )
       `;
-    } catch (logError) {
-      console.error('[CRON] Failed to log job error:', logError);
+      
+      const executionTime = Math.round((Date.now() - startTime) / 1000);
+      
+      console.log('[CRON] Daily trends fetch completed successfully');
+      console.log(`[CRON] Processed markets: ${data.summary?.markets_successful?.join(', ')}`);
+      console.log(`[CRON] Total execution time: ${executionTime} seconds`);
+      
+      return NextResponse.json({
+        success: true,
+        message: 'Daily trends data fetch completed',
+        execution_time: `${executionTime} seconds`,
+        data: data.summary,
+        timestamp: new Date().toISOString()
+      });
+      
+    } catch (fetchError) {
+      console.error('[CRON] Error fetching trends data:', fetchError);
+      
+      // Log job failure
+      await prisma.$executeRaw`
+        INSERT INTO jobs_trends (
+          market, language, job_type, status, error_message, completed_at
+        ) VALUES (
+          'ALL', 'multi', 'daily_cron', 'failed', 
+          ${fetchError instanceof Error ? fetchError.message : 'Unknown error'},
+          CURRENT_TIMESTAMP
+        )
+      `;
+      
+      throw fetchError;
     }
+    
+  } catch (error) {
+    console.error('[CRON] Fatal error in trends daily job:', error);
     
     return NextResponse.json(
       { 
         error: 'Failed to fetch trends data',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : 'Unknown error',
+        timestamp: new Date().toISOString()
       },
       { status: 500 }
     );

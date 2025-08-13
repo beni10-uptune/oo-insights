@@ -21,6 +21,12 @@
     },
     "src/app/api/crawl/enhanced/route.ts": {
       "maxDuration": 300
+    },
+    "src/app/api/admin/fetch-all-markets/route.ts": {
+      "maxDuration": 300
+    },
+    "src/app/api/admin/fetch-real-data/route.ts": {
+      "maxDuration": 300
     }
   }
 }
