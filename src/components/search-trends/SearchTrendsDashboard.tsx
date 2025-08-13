@@ -101,9 +101,10 @@ export default function SearchTrendsDashboard({ market, onMarketChange }: Search
     console.log('Export clicked');
   };
   
-  // Calculate KPIs
+  // Calculate KPIs based on actual data
   const getKPIs = () => {
-    if (!trendsData?.series) {
+    // If no data yet, show loading state
+    if (loading) {
       return {
         topBrand: 'Loading...',
         biggestRiser: 'Loading...',
@@ -112,13 +113,40 @@ export default function SearchTrendsDashboard({ market, onMarketChange }: Search
       };
     }
     
-    // Mock calculations - would be based on real data
-    return {
-      topBrand: 'Wegovy',
-      biggestRiser: 'Mounjaro (+45%)',
-      topTheme: driversData?.themes?.[0]?.theme || 'side_effects',
+    // Calculate top brand from series data
+    let topBrand = 'N/A';
+    let topBrandValue = 0;
+    if (trendsData?.series) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      totalQueries: driversData?.themes?.reduce((sum: number, t: any) => sum + t.query_count, 0) || 0,
+      trendsData.series.forEach((s: any) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const avgValue = s.points?.reduce((sum: number, p: any) => sum + p.value, 0) / (s.points?.length || 1);
+        if (avgValue > topBrandValue) {
+          topBrandValue = avgValue;
+          topBrand = s.brand;
+        }
+      });
+    }
+    
+    // Calculate biggest riser from volume data
+    let biggestRiser = 'N/A';
+    if (volumeData?.rising?.[0]) {
+      const top = volumeData.rising[0];
+      biggestRiser = `${top.brand} (+${top.growth}%)`;
+    }
+    
+    // Get top theme from drivers data
+    const topTheme = driversData?.themes?.[0]?.theme || 'N/A';
+    
+    // Calculate total queries
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const totalQueries = driversData?.themes?.reduce((sum: number, t: any) => sum + t.query_count, 0) || 0;
+    
+    return {
+      topBrand,
+      biggestRiser,
+      topTheme,
+      totalQueries,
     };
   };
   
