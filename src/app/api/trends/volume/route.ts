@@ -38,18 +38,16 @@ export async function GET(request: NextRequest) {
       const topVolumeQueries = await prisma.$queryRawUnsafe(`
         SELECT 
           query,
-          brand,
+          brand_hint as brand,
           volume_monthly,
           cpc,
           theme,
-          COALESCE(growth_pct, 0) as growth_pct
+          COALESCE(volume_delta_pct, 0) as growth_pct
         FROM top_volume_queries
         WHERE market = $1
-          AND timeframe = $2
-          AND period_end >= $3
         ORDER BY volume_monthly DESC
         LIMIT 20
-      `, market, window, startDate) as Array<{
+      `, market) as Array<{
         query: string;
         brand: string | null;
         volume_monthly: number;

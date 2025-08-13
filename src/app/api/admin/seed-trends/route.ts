@@ -161,16 +161,13 @@ export async function GET(request: NextRequest) {
         
         await prisma.$executeRaw`
           INSERT INTO top_volume_queries (
-            market, brand, query, volume_monthly, cpc,
-            theme, growth_pct, timeframe, period_end
+            market, language, query, volume_monthly, cpc,
+            theme, brand_hint
           ) VALUES (
-            ${market}, ${brand}, ${query}, ${volume}, ${Math.random() * 10},
-            ${theme}, ${growth}, '30d', ${now.toISOString()}::timestamp
+            ${market}, 'en', ${query}, ${volume}, ${Math.random() * 10},
+            ${theme}, ${brand}
           )
-          ON CONFLICT (market, brand, query, timeframe, period_end)
-          DO UPDATE SET 
-            volume_monthly = ${volume},
-            growth_pct = ${growth}
+          ON CONFLICT DO NOTHING
         `;
         results.volume++;
       }
