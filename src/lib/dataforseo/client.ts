@@ -205,7 +205,7 @@ class DataForSEOClient {
 
   // Get trends series data (simplified version)
   async getTrendsSeries(
-    market: keyof typeof MARKET_LOCATIONS,
+    _market: keyof typeof MARKET_LOCATIONS,
     keywords: string[],
     _timeRange: '7d' | '30d' | '90d' = '30d'
   ): Promise<TrendsSeries[]> {

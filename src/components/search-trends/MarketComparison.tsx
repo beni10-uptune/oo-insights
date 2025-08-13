@@ -161,9 +161,9 @@ export default function MarketComparison() {
               <CardDescription>Interest across markets</CardDescription>
             </CardHeader>
             <CardContent>
-              {generateBrandData(brand).length > 0 ? (
+              {generateBrandData().length > 0 ? (
                 <ResponsiveContainer width="100%" height={200}>
-                  <LineChart data={generateBrandData(brand)}>
+                  <LineChart data={generateBrandData()}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="date" />
                     <YAxis />
@@ -270,7 +270,7 @@ export default function MarketComparison() {
 
 // Helper functions
 
-function generateBrandData(_brand: string) {
+function generateBrandData() {
   // This would fetch real brand data from API
   // For now return empty array
   return [];

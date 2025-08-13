@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
               VALUES (${market}, 'en', ${brand}, ${dateStr}::date, ${value})
             `;
             results.series++;
-          } catch (e) {
+          } catch {
             // Skip duplicates
           }
         }
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
               )
             `;
             results.queries++;
-          } catch (e) {
+          } catch {
             // Skip errors
           }
         }

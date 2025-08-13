@@ -28,8 +28,8 @@ export async function GET(request: NextRequest) {
         UNIQUE (market, brand, date)
       `;
       operations.push('✓ Added unique constraint to trends_series');
-    } catch (error: any) {
-      if (error.message.includes('already exists')) {
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('already exists')) {
         operations.push('⚠ trends_series constraint already exists');
       } else {
         console.error('Error adding trends_series constraint:', error);
@@ -45,8 +45,8 @@ export async function GET(request: NextRequest) {
         UNIQUE (market, brand, query, timeframe, period_end)
       `;
       operations.push('✓ Added unique constraint to related_queries');
-    } catch (error: any) {
-      if (error.message.includes('already exists')) {
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('already exists')) {
         operations.push('⚠ related_queries constraint already exists');
       } else {
         console.error('Error adding related_queries constraint:', error);
@@ -62,8 +62,8 @@ export async function GET(request: NextRequest) {
         UNIQUE (market, brand, query, timeframe, period_end)
       `;
       operations.push('✓ Added unique constraint to top_volume_queries');
-    } catch (error: any) {
-      if (error.message.includes('already exists')) {
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('already exists')) {
         operations.push('⚠ top_volume_queries constraint already exists');
       } else {
         console.error('Error adding top_volume_queries constraint:', error);
