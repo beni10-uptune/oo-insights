@@ -48,12 +48,14 @@ export async function POST(request: NextRequest) {
               for (const point of points) {
                 await prisma.$executeRaw`
                   INSERT INTO trends_series (
-                    market, brand, date, value, timeframe
+                    market, language, brand, date, interest_index
                   ) VALUES (
-                    ${marketCode}, ${s.brand}, ${point.date}, ${point.value}, '30d'
+                    ${marketCode}, ${marketInfo.language_code}, ${s.brand}, ${point.date}::date, ${point.value}
                   )
-                  ON CONFLICT (market, brand, date, timeframe) 
-                  DO UPDATE SET value = ${point.value}
+                  ON CONFLICT (market, brand, date) 
+                  DO UPDATE SET 
+                    interest_index = ${point.value},
+                    updated_at = CURRENT_TIMESTAMP
                 `;
               }
             }
@@ -121,20 +123,16 @@ export async function POST(request: NextRequest) {
               20
             );
             
-            const now = new Date();
             for (const q of volumeQueries) {
               await prisma.$executeRaw`
                 INSERT INTO top_volume_queries (
-                  market, brand, query, volume_monthly, cpc,
-                  timeframe, period_end
+                  market, language, query, volume_monthly, cpc,
+                  brand_hint
                 ) VALUES (
-                  ${marketCode}, ${brand}, ${q.keyword}, ${q.volume}, ${q.cpc},
-                  '30d', ${now}
+                  ${marketCode}, ${marketInfo.language_code}, ${q.keyword}, ${q.volume}, ${q.cpc},
+                  ${brand}
                 )
-                ON CONFLICT (market, brand, query, timeframe, period_end)
-                DO UPDATE SET 
-                  volume_monthly = ${q.volume},
-                  cpc = ${q.cpc}
+                ON CONFLICT DO NOTHING
               `;
             }
           } catch (volumeError) {
