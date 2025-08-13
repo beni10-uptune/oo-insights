@@ -168,6 +168,17 @@ export async function GET(request: NextRequest) {
     // Step 2: Fetch REAL data from DataForSEO
     console.log('Fetching real data from DataForSEO API...');
     
+    // Check if credentials are available
+    if (!process.env.DATAFORSEO_LOGIN || !process.env.DATAFORSEO_PASSWORD) {
+      return NextResponse.json({
+        success: false,
+        message: 'DataForSEO credentials not configured',
+        error: 'Missing DATAFORSEO_LOGIN or DATAFORSEO_PASSWORD environment variables',
+        results,
+        note: 'Please add DataForSEO credentials to Vercel environment variables'
+      });
+    }
+    
     try {
       const client = getDataForSEOClient();
       
