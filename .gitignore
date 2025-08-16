@@ -29,6 +29,9 @@ yarn-error.log*
 .env*.local
 .env
 
+# SSL certificates and environment variables
+ssl-env-vars.txt
+
 # vercel
 .vercel
 

@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { AppSidebar } from "@/components/app-sidebar";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { AuthSessionProvider } from "@/components/providers/session-provider";
+import { FirebaseAuthProvider } from "@/components/providers/firebase-auth-provider";
+import { AuthWrapper } from "@/components/auth-wrapper";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,16 +19,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} min-h-screen`}>
-        <AuthSessionProvider>
-          <SidebarProvider>
-            <AppSidebar />
-            <SidebarInset>
-              <main className="w-full min-h-screen p-6">
-                {children}
-              </main>
-            </SidebarInset>
-          </SidebarProvider>
-        </AuthSessionProvider>
+        <FirebaseAuthProvider>
+          <AuthWrapper>
+            {children}
+          </AuthWrapper>
+        </FirebaseAuthProvider>
       </body>
     </html>
   );

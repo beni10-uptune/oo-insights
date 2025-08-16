@@ -148,3 +148,7 @@ When working on this project, please follow these principles:
 - Test features with actual market URLs before deployment
 - **ALWAYS run `npm run lint` and `npm run typecheck` after completing tasks**
 - **Production endpoints must fail gracefully without database** - Return 503 errors, never mock data
+- **ALWAYS CHECK EXISTING ENV FILES** - OAuth credentials and other secrets are often already configured
+  - Check .env.local, .env.production, and .env files before assuming they're missing
+  - Google OAuth credentials (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET) are usually already set up
+  - Don't waste time asking for credentials that may already be configured

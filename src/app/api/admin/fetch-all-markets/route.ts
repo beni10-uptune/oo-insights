@@ -35,13 +35,15 @@ export async function GET(request: NextRequest) {
       errors: [] as string[]
     };
     
-    // Fetch each market sequentially to avoid rate limiting
-    for (const [marketCode, config] of Object.entries(MARKETS)) {
-      console.log(`\nProcessing ${config.name} (${marketCode})...`);
+    // Fetch all markets in parallel batches to control concurrency
+    const baseUrl = process.env.NEXTAUTH_URL || 'https://oo.mindsparkdigitallabs.com';
+    const BATCH_SIZE = 3; // Process 3 markets at a time to avoid overwhelming the API
+    
+    // Helper function to fetch a single market
+    const fetchMarket = async ([marketCode, config]: [string, typeof MARKETS[keyof typeof MARKETS]]) => {
+      console.log(`Starting fetch for ${config.name} (${marketCode})...`);
       
       try {
-        // Call the fetch-real-data endpoint for this market
-        const baseUrl = process.env.NEXTAUTH_URL || 'https://oo.mindsparkdigitallabs.com';
         const fetchUrl = `${baseUrl}/api/admin/fetch-real-data?secret=fetch-real-data-2024&market=${marketCode}`;
         
         const response = await fetch(fetchUrl, {
@@ -49,33 +51,67 @@ export async function GET(request: NextRequest) {
           headers: {
             'Content-Type': 'application/json',
           },
+          // Add a timeout for individual market fetches
+          signal: AbortSignal.timeout(60000) // 60 seconds per market
         });
         
         if (response.ok) {
           const data = await response.json();
-          if (data.results?.data_saved) {
-            results.total_data.trends += data.results.data_saved.trends || 0;
-            results.total_data.queries += data.results.data_saved.queries || 0;
-            results.total_data.volume += data.results.data_saved.volume || 0;
-          }
-          results.markets_processed.push(`${marketCode} ✅`);
           console.log(`✅ ${marketCode}: Fetched successfully`);
+          return {
+            marketCode,
+            success: true,
+            data: data.results?.data_saved || { trends: 0, queries: 0, volume: 0 }
+          };
         } else {
-          results.markets_failed.push(marketCode);
-          results.errors.push(`${marketCode}: HTTP ${response.status}`);
           console.log(`❌ ${marketCode}: Failed with status ${response.status}`);
+          return {
+            marketCode,
+            success: false,
+            error: `HTTP ${response.status}`
+          };
         }
-        
-        // Add delay between markets to avoid rate limiting (5 seconds)
-        if (marketCode !== 'PL') { // Don't delay after last market
-          console.log('Waiting 5 seconds before next market...');
-          await new Promise(resolve => setTimeout(resolve, 5000));
-        }
-        
       } catch (error) {
-        results.markets_failed.push(marketCode);
-        results.errors.push(`${marketCode}: ${error instanceof Error ? error.message : 'Unknown error'}`);
         console.error(`Error fetching ${marketCode}:`, error);
+        return {
+          marketCode,
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error'
+        };
+      }
+    };
+    
+    // Process markets in batches
+    const marketEntries = Object.entries(MARKETS);
+    const marketResults = [];
+    
+    console.log(`Processing ${marketEntries.length} markets in batches of ${BATCH_SIZE}...`);
+    
+    for (let i = 0; i < marketEntries.length; i += BATCH_SIZE) {
+      const batch = marketEntries.slice(i, i + BATCH_SIZE);
+      console.log(`\nProcessing batch ${Math.floor(i / BATCH_SIZE) + 1}: ${batch.map(([code]) => code).join(', ')}`);
+      
+      const batchPromises = batch.map(fetchMarket);
+      const batchResults = await Promise.all(batchPromises);
+      marketResults.push(...batchResults);
+      
+      // Add a small delay between batches to be respectful to the API
+      if (i + BATCH_SIZE < marketEntries.length) {
+        console.log('Waiting 2 seconds before next batch...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
+    
+    // Process results
+    for (const result of marketResults) {
+      if (result.success) {
+        results.markets_processed.push(`${result.marketCode} ✅`);
+        results.total_data.trends += result.data.trends;
+        results.total_data.queries += result.data.queries;
+        results.total_data.volume += result.data.volume;
+      } else {
+        results.markets_failed.push(result.marketCode);
+        results.errors.push(`${result.marketCode}: ${result.error}`);
       }
     }
     

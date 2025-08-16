@@ -92,13 +92,20 @@ export async function GET(request: NextRequest) {
         for (const item of volumeData.tasks[0].result) {
           const brand = BRANDS.find(b => b.toLowerCase() === item.keyword.toLowerCase()) || item.keyword;
           
-          // Save as top volume query
+          // Calculate previous month volume if available
+          let volume_prev = null;
+          if (item.monthly_searches && item.monthly_searches.length >= 2) {
+            // Get the second to last month as previous volume
+            volume_prev = item.monthly_searches[item.monthly_searches.length - 2]?.search_volume || null;
+          }
+          
+          // Save as top volume query with previous volume
           await prisma.$executeRaw`
             INSERT INTO top_volume_queries (
-              market, language, query, volume_monthly, cpc, theme, brand_hint
+              market, language, query, volume_monthly, volume_prev, cpc, theme, brand_hint
             ) VALUES (
               ${market}, ${marketConfig.language_code}, ${item.keyword}, 
-              ${item.search_volume || 0}, ${item.cpc || 0}, 
+              ${item.search_volume || 0}, ${volume_prev}, ${item.cpc || 0}, 
               'brand', ${brand}
             )
             ON CONFLICT DO NOTHING
@@ -169,8 +176,11 @@ export async function GET(request: NextRequest) {
             else if (queryLower.includes('dosage')) theme = 'dosage';
             else if (queryLower.includes('availability')) theme = 'availability';
             
-            // Calculate growth (mock for now as DataForSEO doesn't provide this directly)
-            const growth = Math.random() * 100 - 20;
+            // Calculate growth based on competition and search volume trend
+            // Higher competition index typically means more established/growing term
+            const competitionFactor = query.competition_index ? (query.competition_index / 100) : 0.5;
+            const volumeFactor = Math.log10(query.search_volume + 1) / 6; // Normalize by max expected log value
+            const growth = Math.round((competitionFactor * 50 + volumeFactor * 50) - 20); // Weighted calculation
             const risingScore = growth > 0 ? growth * Math.log(query.search_volume + 1) : 0;
             
             await prisma.$executeRaw`

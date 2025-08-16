@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/db';
 import { MARKET_LOCATIONS } from '@/lib/dataforseo/client';
-
-const prisma = new PrismaClient();
 
 export async function GET(request: NextRequest) {
   try {
@@ -34,7 +32,7 @@ export async function GET(request: NextRequest) {
     }
     
     try {
-      // Fetch top volume queries from database
+      // Fetch top volume queries from database with proper month-over-month calculation
       const topVolumeQueries = await prisma.$queryRawUnsafe(`
         SELECT 
           query,
@@ -42,7 +40,12 @@ export async function GET(request: NextRequest) {
           volume_monthly,
           cpc,
           theme,
-          COALESCE(volume_delta_pct, 0) as growth_pct
+          CASE 
+            WHEN volume_prev IS NOT NULL AND volume_prev > 0 THEN 
+              ROUND(((volume_monthly - volume_prev)::NUMERIC / volume_prev) * 100)
+            ELSE 
+              COALESCE(volume_delta_pct, 0)
+          END as growth_pct
         FROM top_volume_queries
         WHERE market = $1
         ORDER BY volume_monthly DESC
@@ -79,20 +82,20 @@ export async function GET(request: NextRequest) {
         theme: string | null;
       }>;
       
-      // Format high volume queries
+      // Format high volume queries with rounded change
       const highVolume = topVolumeQueries.map(q => ({
         query: q.query,
         volume: q.volume_monthly,
-        change: q.growth_pct ?? 0,
+        change: Math.round(q.growth_pct ?? 0),
         brand: q.brand ?? 'Unknown',
         theme: q.theme ?? 'general',
       }));
       
-      // Format rising queries
+      // Format rising queries with rounded growth
       const rising = risingQueries.map(q => ({
         query: q.query,
         volume: q.volume,
-        growth: q.growth,
+        growth: Math.round(q.growth),
         brand: q.brand ?? 'Unknown',
         theme: q.theme ?? 'general',
       }));

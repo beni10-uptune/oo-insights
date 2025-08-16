@@ -43,6 +43,10 @@ export default function SearchTrendsDashboard({ market, onMarketChange }: Search
   const [timeWindow, setTimeWindow] = useState('30d');
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [brandFilter, setBrandFilter] = useState<string>('all');
+  const [sortField, setSortField] = useState<'volume' | 'change'>('volume');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [authBlocked, setAuthBlocked] = useState(false);
   
   // State for data
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -59,32 +63,65 @@ export default function SearchTrendsDashboard({ market, onMarketChange }: Search
   
   const loadData = async () => {
     setLoading(true);
+    setAuthBlocked(false);
+    let hasAuthIssue = false;
+    
     try {
+      // Helper function to fetch with auth handling
+      const fetchWithAuth = async (url: string) => {
+        const res = await fetch(url, {
+          credentials: 'include', // Include cookies for authentication
+          headers: {
+            'Accept': 'application/json',
+          },
+        });
+        
+        // Check if response is JSON
+        const contentType = res.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+          console.warn(`API endpoint ${url} returned non-JSON response (likely auth page)`);
+          hasAuthIssue = true;
+          return null;
+        }
+        
+        return res.json();
+      };
+      
       // Fetch trends series
-      const trendsRes = await fetch(`/api/trends/series?market=${market}&window=${timeWindow}`);
-      const trends = await trendsRes.json();
-      if (trends.success) {
+      const trends = await fetchWithAuth(`/api/trends/series?market=${market}&window=${timeWindow}`);
+      if (trends?.success) {
         setTrendsData(trends);
+      } else {
+        // Use fallback empty data structure
+        setTrendsData({ series: [] });
       }
       
       // Fetch drivers/themes
-      const driversRes = await fetch(`/api/trends/drivers?market=${market}&window=${timeWindow}`);
-      const drivers = await driversRes.json();
-      if (drivers.success) {
+      const drivers = await fetchWithAuth(`/api/trends/drivers?market=${market}&window=${timeWindow}`);
+      if (drivers?.success) {
         setDriversData(drivers);
+      } else {
+        // Use fallback empty data structure
+        setDriversData({ themes: [], queries: [] });
       }
       
       // Fetch volume data from API
-      const volumeRes = await fetch(`/api/trends/volume?market=${market}&window=${timeWindow}`);
-      const volume = await volumeRes.json();
-      if (volume.success) {
+      const volume = await fetchWithAuth(`/api/trends/volume?market=${market}&window=${timeWindow}`);
+      if (volume?.success) {
         setVolumeData(volume);
       } else {
         // Set empty data if API fails
         setVolumeData({ rising: [], highVolume: [] });
       }
+      
+      // Set auth blocked flag if we detected authentication issues
+      setAuthBlocked(hasAuthIssue);
     } catch (error) {
       console.error('Failed to load trends data:', error);
+      // Set fallback empty data
+      setTrendsData({ series: [] });
+      setDriversData({ themes: [], queries: [] });
+      setVolumeData({ rising: [], highVolume: [] });
     } finally {
       setLoading(false);
     }
@@ -113,10 +150,20 @@ export default function SearchTrendsDashboard({ market, onMarketChange }: Search
       };
     }
     
+    // If auth is blocked, show appropriate message
+    if (authBlocked) {
+      return {
+        topBrand: 'Auth Required',
+        biggestRiser: 'Auth Required',
+        topTheme: 'Auth Required',
+        totalQueries: 0,
+      };
+    }
+    
     // Calculate top brand from series data
-    let topBrand = 'N/A';
+    let topBrand = 'No data';
     let topBrandValue = 0;
-    if (trendsData?.series) {
+    if (trendsData?.series && trendsData.series.length > 0) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       trendsData.series.forEach((s: any) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -129,14 +176,14 @@ export default function SearchTrendsDashboard({ market, onMarketChange }: Search
     }
     
     // Calculate biggest riser from volume data
-    let biggestRiser = 'N/A';
+    let biggestRiser = 'No data';
     if (volumeData?.rising?.[0]) {
       const top = volumeData.rising[0];
-      biggestRiser = `${top.brand} (+${top.growth}%)`;
+      biggestRiser = `${top.brand} (+${Math.round(top.growth)}%)`;
     }
     
     // Get top theme from drivers data
-    const topTheme = driversData?.themes?.[0]?.theme || 'N/A';
+    const topTheme = driversData?.themes?.[0]?.theme ? formatThemeName(driversData.themes[0].theme) : 'No data';
     
     // Calculate total queries
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -152,8 +199,53 @@ export default function SearchTrendsDashboard({ market, onMarketChange }: Search
   
   const kpis = getKPIs();
   
+  // Handle sorting
+  const handleSort = (field: 'volume' | 'change') => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
+    } else {
+      setSortField(field);
+      setSortOrder('desc');
+    }
+  };
+  
+  // Filter and sort queries
+  const getFilteredAndSortedQueries = () => {
+    if (!volumeData?.highVolume) return [];
+    
+    // Filter by brand
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const filtered = volumeData.highVolume.filter((q: any) => 
+      brandFilter === 'all' || q.brand === brandFilter
+    );
+    
+    // Sort
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    filtered.sort((a: any, b: any) => {
+      const aVal = sortField === 'volume' ? a.volume : a.change;
+      const bVal = sortField === 'volume' ? b.volume : b.change;
+      return sortOrder === 'desc' ? bVal - aVal : aVal - bVal;
+    });
+    
+    return filtered;
+  };
+  
   return (
     <div className="space-y-6">
+      {/* Authentication Warning */}
+      {authBlocked && (
+        <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+          <div className="flex">
+            <div className="ml-3">
+              <p className="text-sm text-yellow-700">
+                <strong>Authentication Required:</strong> The data API is protected by Vercel authentication. 
+                Please ensure you&apos;re logged in to view live data. Currently showing placeholder values.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Controls */}
       <div className="flex flex-wrap gap-4 items-center justify-between">
         <div className="flex gap-2">
@@ -356,7 +448,7 @@ export default function SearchTrendsDashboard({ market, onMarketChange }: Search
                       </Badge>
                     ) : null}
                     <span className="text-green-600 font-medium">
-                      +{query.growth}%
+                      +{Math.round(query.growth)}%
                     </span>
                   </div>
                 </div>
@@ -369,13 +461,28 @@ export default function SearchTrendsDashboard({ market, onMarketChange }: Search
       {/* High Volume Queries */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
-            Top Volume Queries
-          </CardTitle>
-          <CardDescription>
-            Highest search volume keywords in {MARKETS.find(m => m.value === market)?.label}
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Top Volume Queries
+              </CardTitle>
+              <CardDescription>
+                Highest search volume keywords in {MARKETS.find(m => m.value === market)?.label}
+              </CardDescription>
+            </div>
+            <Select value={brandFilter} onValueChange={setBrandFilter}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue placeholder="Filter by brand" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Brands</SelectItem>
+                <SelectItem value="Wegovy">Wegovy</SelectItem>
+                <SelectItem value="Ozempic">Ozempic</SelectItem>
+                <SelectItem value="Mounjaro">Mounjaro</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -384,14 +491,20 @@ export default function SearchTrendsDashboard({ market, onMarketChange }: Search
                 <tr className="border-b">
                   <th className="text-left py-2">Query</th>
                   <th className="text-left py-2">Theme</th>
-                  <th className="text-right py-2">Monthly Volume</th>
-                  <th className="text-right py-2">Change</th>
+                  <th className="text-right py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                      onClick={() => handleSort('volume')}>
+                    Monthly Volume {sortField === 'volume' && (sortOrder === 'desc' ? '↓' : '↑')}
+                  </th>
+                  <th className="text-right py-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"
+                      onClick={() => handleSort('change')}>
+                    Change {sortField === 'change' && (sortOrder === 'desc' ? '↓' : '↑')}
+                  </th>
                   <th className="text-left py-2 pl-4">Brand</th>
                 </tr>
               </thead>
               <tbody>
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                {volumeData?.highVolume?.map((query: any, idx: number) => (
+                {getFilteredAndSortedQueries()?.map((query: any, idx: number) => (
                   <tr key={idx} className="border-b">
                     <td className="py-2 font-medium">{query.query}</td>
                     <td className="py-2">
@@ -401,8 +514,8 @@ export default function SearchTrendsDashboard({ market, onMarketChange }: Search
                     </td>
                     <td className="py-2 text-right">{formatNumber(query.volume)}</td>
                     <td className="py-2 text-right">
-                      <span className={query.change > 0 ? 'text-green-600' : 'text-red-600'}>
-                        {query.change > 0 ? '+' : ''}{query.change}%
+                      <span className={query.change > 0 ? 'text-green-600' : query.change < 0 ? 'text-red-600' : 'text-gray-500'}>
+                        {query.change > 0 ? '+' : ''}{Math.round(query.change)}%
                       </span>
                     </td>
                     <td className="py-2 pl-4">

@@ -2,6 +2,7 @@
   "buildCommand": "npx prisma generate && npm run build",
   "framework": "nextjs",
   "outputDirectory": ".next",
+  "public": true,
   "crons": [
     {
       "path": "/api/cron/daily-crawl",
@@ -10,6 +11,10 @@
     {
       "path": "/api/cron/trends-daily",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/sitemap-review",
+      "schedule": "0 7 * * *"
     }
   ],
   "functions": {
@@ -17,6 +22,15 @@
       "maxDuration": 300
     },
     "src/app/api/cron/trends-daily/route.ts": {
+      "maxDuration": 300
+    },
+    "src/app/api/cron/sitemap-review/route.ts": {
+      "maxDuration": 300
+    },
+    "src/app/api/crawl/full-site/route.ts": {
+      "maxDuration": 300
+    },
+    "src/app/api/admin/fetch-comprehensive-trends/route.ts": {
       "maxDuration": 300
     },
     "src/app/api/crawl/enhanced/route.ts": {
@@ -27,6 +41,15 @@
     },
     "src/app/api/admin/fetch-real-data/route.ts": {
       "maxDuration": 300
+    },
+    "src/app/api/trends/series/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/trends/drivers/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/trends/volume/route.ts": {
+      "maxDuration": 60
     }
   }
 }

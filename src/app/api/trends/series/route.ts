@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/db';
 import { getDataForSEOClient, MARKET_LOCATIONS } from '@/lib/dataforseo/client';
-
-const prisma = new PrismaClient();
 
 export async function GET(request: NextRequest) {
   try {
@@ -44,7 +42,8 @@ export async function GET(request: NextRequest) {
       const cacheTime = new Date();
       cacheTime.setMinutes(cacheTime.getMinutes() - 15);
       
-      const cachedData = await prisma.$queryRaw`
+      // First try with the requested date range
+      let cachedData = await prisma.$queryRaw`
         SELECT brand, date, interest_index as value
         FROM trends_series
         WHERE market = ${market}
@@ -52,6 +51,26 @@ export async function GET(request: NextRequest) {
           AND date <= ${endDate}
         ORDER BY brand, date
       ` as Array<{ brand: string; date: Date; value: number }>;
+      
+      // If we don't have data for all brands, get the most recent data we have
+      const brands = ['Wegovy', 'Ozempic', 'Mounjaro'];
+      const brandsWithData = new Set(cachedData.map(d => d.brand));
+      
+      if (brandsWithData.size < brands.length) {
+        // Get the most recent 30 data points for each brand
+        cachedData = await prisma.$queryRaw`
+          WITH latest_data AS (
+            SELECT brand, date, interest_index as value,
+                   ROW_NUMBER() OVER (PARTITION BY brand ORDER BY date DESC) as rn
+            FROM trends_series
+            WHERE market = ${market}
+          )
+          SELECT brand, date, value
+          FROM latest_data
+          WHERE rn <= 30
+          ORDER BY brand, date
+        ` as Array<{ brand: string; date: Date; value: number }>;
+      }
       
       if (cachedData.length > 0) {
         // Format cached data
@@ -109,13 +128,17 @@ export async function GET(request: NextRequest) {
         VALUES (${market}, ${lang}, 'trends', 'failed', ${String(apiError)}, NOW())
       `;
       
-      // Return any cached data we have
+      // Return any cached data we have - get most recent data for all brands
       const fallbackData = await prisma.$queryRaw`
-        SELECT brand, date, interest_index as value
-        FROM trends_series
-        WHERE market = ${market}
-          AND date >= ${startDate}
-          AND date <= ${endDate}
+        WITH latest_data AS (
+          SELECT brand, date, interest_index as value,
+                 ROW_NUMBER() OVER (PARTITION BY brand ORDER BY date DESC) as rn
+          FROM trends_series
+          WHERE market = ${market}
+        )
+        SELECT brand, date, value
+        FROM latest_data
+        WHERE rn <= 30
         ORDER BY brand, date
       ` as Array<{ brand: string; date: Date; value: number }>;
       

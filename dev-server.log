@@ -1,0 +1,36 @@
+
+> oo-insights@0.1.0 dev
+> next dev --turbopack
+
+ ⚠ Warning: Found multiple lockfiles. Selecting /Users/bensmith/Desktop/OO-insights-v2/package-lock.json.
+   Consider removing the lockfiles at:
+   * /Users/bensmith/Desktop/OO-insights-v2/oo-insights/package-lock.json
+
+   ▲ Next.js 15.4.6 (Turbopack)
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.2.46:3000
+   - Environments: .env.local, .env
+
+ ✓ Starting...
+ ✓ Compiled middleware in 158ms
+ ✓ Ready in 1732ms
+ ○ Compiling /api/trends/volume ...
+ ✓ Compiled /api/trends/volume in 818ms
+ GET /api/trends/volume?market=UK&window=30d 200 in 1247ms
+ ✓ Compiled middleware in 6ms
+ ✓ Compiled in 248ms
+ ✓ Compiled middleware in 1ms
+ ✓ Compiled middleware in 0ms
+   Reload env: .env.local
+ ✓ Compiled middleware in 2ms
+ ✓ Compiled middleware in 1ms
+ ✓ Compiled middleware in 1ms
+ ✓ Compiled middleware in 5ms
+ ✓ Compiled in 27ms
+   Reload env: .env.local
+ ✓ Compiled middleware in 10ms
+   Reload env: .env.local
+   Reload env: .env.local
+   Reload env: .env.local
+   Reload env: .env.local
+   Reload env: .env.local

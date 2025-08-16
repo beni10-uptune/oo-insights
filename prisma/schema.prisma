@@ -170,6 +170,7 @@ model User {
   emailVerified DateTime?
   name          String?
   image         String?
+  password      String?   // For email/password auth
   role          String    @default("USER")
   markets       String[]  @default([])
   accounts      Account[]
@@ -184,4 +185,100 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+// Central Markets reference table for consistent market data across all features
+model Market {
+  id            String   @id @default(uuid())
+  code          String   @unique // e.g., "de", "fr", "ca_en"
+  name          String   // e.g., "Germany", "France", "Canada English"
+  region        String   // e.g., "Europe", "North America"
+  country       String   // e.g., "Germany", "France", "Canada"
+  countryCode   String   // ISO country code: "DE", "FR", "CA"
+  language      String   // e.g., "de", "fr", "en"
+  languageCode  String   // ISO language code: "de-DE", "fr-FR", "en-CA"
+  websiteUrl    String   // e.g., "https://www.ueber-gewicht.de/"
+  sitemapUrl    String?  // e.g., "https://www.ueber-gewicht.de/sitemap.xml"
+  domain        String   // e.g., "ueber-gewicht.de"
+  timezone      String   // e.g., "Europe/Berlin"
+  flag          String?  // emoji flag
+  isCore        Boolean  @default(false) // true for core EUCAN markets
+  isActive      Boolean  @default(true)
+  priority      Int      @default(100) // lower number = higher priority
+  metadata      Json?    // additional market-specific config
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([region])
+  @@index([country])
+  @@index([isCore])
+  @@map("markets")
+}
+
+// Tracking of market data collection jobs
+model MarketDataJob {
+  id           String   @id @default(uuid())
+  marketCode   String   // references Market.code
+  jobType      String   // e.g., "crawl", "trends", "competitors"
+  status       String   // e.g., "pending", "running", "completed", "failed"
+  startedAt    DateTime?
+  completedAt  DateTime?
+  itemsProcessed Int?
+  errors       Json?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  @@index([marketCode, jobType])
+  @@index([status])
+  @@map("market_data_jobs")
+}
+
+// Search trends data tables
+model TrendsSeries {
+  id          String   @id @default(uuid())
+  marketCode  String   // references Market.code
+  keyword     String
+  date        DateTime
+  value       Float    // normalized 0-100 trend value
+  dataSource  String   @default("dataforseo") // or "google_trends"
+  createdAt   DateTime @default(now())
+
+  @@unique([marketCode, keyword, date])
+  @@index([marketCode])
+  @@index([keyword])
+  @@index([date])
+  @@map("trends_series")
+}
+
+model TopVolumeQueries {
+  id             String   @id @default(uuid())
+  marketCode     String   // references Market.code
+  keyword        String
+  searchVolume   Int
+  cpc            Float?
+  competition    Float?
+  monthlyVolumes Json?    // array of {month: string, volume: int}
+  lastUpdated    DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  @@unique([marketCode, keyword])
+  @@index([marketCode])
+  @@index([searchVolume])
+  @@map("top_volume_queries")
+}
+
+model RelatedQueries {
+  id           String   @id @default(uuid())
+  marketCode   String   // references Market.code
+  seedKeyword  String
+  keyword      String
+  searchVolume Int?
+  relevance    Float?
+  trendGrowth  Float?   // growth percentage
+  lastUpdated  DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  @@index([marketCode, seedKeyword])
+  @@index([marketCode])
+  @@map("related_queries")
 }

@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/db';
 import { getDataForSEOClient, MARKET_LOCATIONS } from '@/lib/dataforseo/client';
-
-const prisma = new PrismaClient();
 
 export async function GET(request: NextRequest) {
   try {
@@ -129,12 +127,12 @@ export async function GET(request: NextRequest) {
     }
     
     // Calculate theme rollups from cached data
-    const themeRollups = await prisma.$queryRawUnsafe(`
+    const themeRollupsRaw = await prisma.$queryRawUnsafe(`
       SELECT 
         theme,
-        SUM(rising_score) as rising_score,
-        SUM(volume_monthly) as volume_sum,
-        COUNT(*) as query_count
+        SUM(rising_score)::integer as rising_score,
+        SUM(volume_monthly)::integer as volume_sum,
+        COUNT(*)::integer as query_count
       FROM related_queries
       WHERE market = $1
         AND timeframe = $2
@@ -147,8 +145,11 @@ export async function GET(request: NextRequest) {
       theme: string;
       rising_score: number;
       volume_sum: number;
-      query_count: bigint;
+      query_count: number;
     }>;
+    
+    // No need to convert BigInt anymore
+    const themeRollups = themeRollupsRaw;
     
     // Get top queries for each theme
     const themes = await Promise.all(
@@ -166,7 +167,7 @@ export async function GET(request: NextRequest) {
           theme: t.theme,
           rising_score: t.rising_score,
           volume_sum: t.volume_sum,
-          query_count: Number(t.query_count),
+          query_count: t.query_count,
           queries: topQueries,
         };
       })

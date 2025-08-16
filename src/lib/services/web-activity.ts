@@ -62,8 +62,7 @@ export async function storeCrawlResult(result: CrawlResult & { publishDate?: Dat
       lastModifiedAt: new Date(),
       changeHash: contentHash,
       changePct,
-      // @ts-expect-error - publishDate column might not exist yet
-      publishDate: result.publishDate || null,
+      // publishDate field doesn't exist in ContentPage model, skip it
     },
     update: {
       title: result.title,
@@ -77,8 +76,7 @@ export async function storeCrawlResult(result: CrawlResult & { publishDate?: Dat
       changeHash: contentHash,
       changePct,
       updatedAt: new Date(),
-      // @ts-expect-error - publishDate column might not exist yet
-      publishDate: result.publishDate || null,
+      // publishDate field doesn't exist in ContentPage model, skip it
     },
   });
   

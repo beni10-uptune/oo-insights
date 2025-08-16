@@ -303,31 +303,48 @@ export async function getSitemap(url: string): Promise<string[]> {
 export function getMarketFromUrl(url: string): string {
   const urlLower = url.toLowerCase();
   
-  // Core Markets
-  if (urlLower.includes('truthaboutweight.uk')) return 'UK';
-  if (urlLower.includes('truthaboutweight.it')) return 'IT';
-  if (urlLower.includes('truthaboutweight.es')) return 'ES';
-  if (urlLower.includes('truthaboutweight.fr')) return 'FR';
-  if (urlLower.includes('truthaboutweight.de')) return 'DE';
-  if (urlLower.includes('truthaboutweight.pl')) return 'PL';
-  if (urlLower.includes('truthaboutweight.ca')) return 'CA';
+  // Core EUCAN Markets with actual domains
+  if (urlLower.includes('ueber-gewicht.de')) return 'de';
+  if (urlLower.includes('audeladupoids.fr')) return 'fr';
+  if (urlLower.includes('novoio.it')) return 'it';
+  if (urlLower.includes('laverdaddesupeso.es')) return 'es';
+  if (urlLower.includes('truthaboutweight.ca/en')) return 'ca_en';
+  if (urlLower.includes('truthaboutweight.ca/fr')) return 'ca_fr';
+  if (urlLower.includes('truthaboutweight.ca')) return 'ca_en'; // Default to English
   
-  // Global
-  if (urlLower.includes('truthaboutweight.global')) return 'Global';
+  // Switzerland multilingual
+  if (urlLower.includes('meingewichtverstehen.ch')) return 'ch_de';
+  if (urlLower.includes('laveritasulpeso.ch')) return 'ch_it';
+  if (urlLower.includes('laveritesurlepoids.ch')) return 'ch_fr';
   
-  // Additional European markets
-  if (urlLower.includes('truthaboutweight.be/nl')) return 'BE-NL';
-  if (urlLower.includes('truthaboutweight.be/fr')) return 'BE-FR';
-  if (urlLower.includes('truthaboutweight.ch/de')) return 'CH-DE';
-  if (urlLower.includes('truthaboutweight.ch/fr')) return 'CH-FR';
-  if (urlLower.includes('truthaboutweight.ch/it')) return 'CH-IT';
-  if (urlLower.includes('truthaboutweight.nl')) return 'NL';
-  if (urlLower.includes('truthaboutweight.at')) return 'AT';
-  if (urlLower.includes('truthaboutweight.pt')) return 'PT';
-  if (urlLower.includes('truthaboutweight.se')) return 'SE';
-  if (urlLower.includes('truthaboutweight.dk')) return 'DK';
-  if (urlLower.includes('truthaboutweight.no')) return 'NO';
-  if (urlLower.includes('truthaboutweight.fi')) return 'FI';
+  // Nordics
+  if (urlLower.includes('meromobesitas.se')) return 'se';
+  if (urlLower.includes('snakkomvekt.no')) return 'no';
+  
+  // Baltics
+  if (urlLower.includes('manssvars.lv')) return 'lv';
+  if (urlLower.includes('minukaal.ee')) return 'ee';
+  if (urlLower.includes('manosvoris.lt')) return 'lt';
+  
+  // Croatia
+  if (urlLower.includes('istinaodebljini.hr')) return 'hr';
+  
+  // Global domain with subpaths
+  if (urlLower.includes('truthaboutweight.global')) {
+    // Extract market from path
+    const pathMatch = url.match(/truthaboutweight\.global\/([a-z]{2})(?:\/([a-z]{2}))?/i);
+    if (pathMatch) {
+      const [, country, lang] = pathMatch;
+      if (lang) {
+        return `${country}_${lang}`;
+      }
+      return country;
+    }
+    return 'global';
+  }
+  
+  // Legacy UK domain (if it exists)
+  if (urlLower.includes('truthaboutweight.uk')) return 'uk';
   
   return 'Unknown';
 }
@@ -338,12 +355,39 @@ export function getMarketFromUrl(url: string): string {
 export function getLanguageFromUrl(url: string): string {
   const urlLower = url.toLowerCase();
   
-  if (urlLower.includes('/nl') || urlLower.includes('truthaboutweight.be/nl')) return 'nl';
+  // Check domain-based languages
+  if (urlLower.includes('ueber-gewicht.de')) return 'de';
+  if (urlLower.includes('audeladupoids.fr')) return 'fr';
+  if (urlLower.includes('novoio.it')) return 'it';
+  if (urlLower.includes('laverdaddesupeso.es')) return 'es';
+  if (urlLower.includes('meingewichtverstehen.ch')) return 'de';
+  if (urlLower.includes('laveritasulpeso.ch')) return 'it';
+  if (urlLower.includes('laveritesurlepoids.ch')) return 'fr';
+  if (urlLower.includes('meromobesitas.se')) return 'sv';
+  if (urlLower.includes('snakkomvekt.no')) return 'no';
+  if (urlLower.includes('manssvars.lv')) return 'lv';
+  if (urlLower.includes('minukaal.ee')) return 'et';
+  if (urlLower.includes('manosvoris.lt')) return 'lt';
+  if (urlLower.includes('istinaodebljini.hr')) return 'hr';
+  
+  // Check path-based languages
+  if (urlLower.includes('/nl')) return 'nl';
   if (urlLower.includes('/fr')) return 'fr';
-  if (urlLower.includes('/de')) return 'de';
-  if (urlLower.includes('/it')) return 'it';
-  if (urlLower.includes('.uk')) return 'en-GB';
-  if (urlLower.includes('.ca')) return 'en-CA';
+  if (urlLower.includes('/en')) return 'en';
+  if (urlLower.includes('/bg')) return 'bg';
+  if (urlLower.includes('/fi')) return 'fi';
+  if (urlLower.includes('/el')) return 'el';
+  if (urlLower.includes('/hu')) return 'hu';
+  if (urlLower.includes('/is')) return 'is';
+  if (urlLower.includes('/sk')) return 'sk';
+  if (urlLower.includes('/sr')) return 'sr';
+  
+  // Canada specific
+  if (urlLower.includes('truthaboutweight.ca/fr')) return 'fr';
+  if (urlLower.includes('truthaboutweight.ca')) return 'en';
+  
+  // UK specific
+  if (urlLower.includes('truthaboutweight.uk')) return 'en';
   
   return 'en';
 }

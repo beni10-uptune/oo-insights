@@ -33,35 +33,65 @@ export async function GET(request: NextRequest) {
         await import('@/lib/dataforseo/client');
         clientStatus = '✅ Client module loaded';
         
-        // Step 3: Make a simple API call to test credentials
+        // Step 3: Test Google Trends API endpoint
         try {
-          // Test with a simple endpoint that doesn't consume credits
-          const testResponse = await fetch('https://api.dataforseo.com/v3/merchant/google/sellers/task_get', {
+          // Test Google Trends endpoint with real data
+          const auth = Buffer.from(`${process.env.DATAFORSEO_LOGIN}:${process.env.DATAFORSEO_PASSWORD}`).toString('base64');
+          
+          // First test: Get historical search volume (this should work)
+          const volumeResponse = await fetch('https://api.dataforseo.com/v3/keywords_data/google_ads/search_volume/live', {
             method: 'POST',
             headers: {
-              'Authorization': `Basic ${Buffer.from(`${process.env.DATAFORSEO_LOGIN}:${process.env.DATAFORSEO_PASSWORD}`).toString('base64')}`,
+              'Authorization': `Basic ${auth}`,
               'Content-Type': 'application/json',
             },
             body: JSON.stringify([{
-              id: "test_connection"
+              keywords: ['Wegovy', 'Ozempic', 'Mounjaro'],
+              location_code: 2826, // UK
+              language_code: 'en'
             }])
           });
           
-          const data = await testResponse.json();
+          const volumeData = await volumeResponse.json();
           
-          if (testResponse.ok) {
-            apiTestResult = {
-              status: '✅ API connection successful',
-              statusCode: testResponse.status,
-              apiVersion: data.version || 'Unknown'
-            };
-          } else {
-            apiTestResult = {
-              status: '❌ API connection failed',
-              statusCode: testResponse.status,
-              error: data.status_message || 'Unknown error'
-            };
-          }
+          // Second test: Try Google Trends endpoint
+          const trendsResponse = await fetch('https://api.dataforseo.com/v3/keywords_data/google_trends/explore/live', {
+            method: 'POST', 
+            headers: {
+              'Authorization': `Basic ${auth}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify([{
+              keywords: ['Wegovy', 'Ozempic', 'Mounjaro'],
+              location_code: 2826,
+              language_code: 'en',
+              date_from: '2025-05-01',
+              date_to: '2025-08-13',
+              type: 'web',
+              categories: [],
+              time_range: 'custom'
+            }])
+          });
+          
+          const trendsData = await trendsResponse.json();
+          
+          apiTestResult = {
+            status: '✅ API connection tested',
+            searchVolume: {
+              statusCode: volumeResponse.status,
+              success: volumeResponse.ok,
+              hasResults: volumeData?.tasks?.[0]?.result?.length > 0,
+              sampleResult: volumeData?.tasks?.[0]?.result?.[0] || null
+            },
+            googleTrends: {
+              statusCode: trendsResponse.status,
+              success: trendsResponse.ok,
+              hasResults: trendsData?.tasks?.[0]?.result?.length > 0,
+              errorMessage: trendsData?.tasks?.[0]?.status_message || null,
+              resultStructure: trendsData?.tasks?.[0]?.result?.[0] ? Object.keys(trendsData.tasks[0].result[0]) : [],
+              sampleData: trendsData?.tasks?.[0]?.result?.[0]?.items?.[0] || null
+            }
+          };
         } catch (apiError) {
           apiTestResult = {
             status: '❌ API request failed',
