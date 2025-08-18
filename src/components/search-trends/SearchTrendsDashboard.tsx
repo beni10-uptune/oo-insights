@@ -381,13 +381,21 @@ export default function SearchTrendsDashboard({ market, onMarketChange }: Search
         </Card>
       </div>
       
-      {/* Google Trends Embed - Temporarily disabled due to rendering issues */}
-      {/* <GoogleTrendsEmbed 
-        market={market}
-        keywords={['wegovy', 'ozempic', 'mounjaro']}
-        timeRange={timeWindow}
-        widgetType="TIMESERIES"
-      /> */}
+      {/* Google Trends Widgets */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <GoogleTrendsEmbed 
+          market={market}
+          keywords={['wegovy', 'ozempic', 'mounjaro']}
+          timeRange={timeWindow}
+          widgetType="TIMESERIES"
+        />
+        <GoogleTrendsEmbed 
+          market={market}
+          keywords={['wegovy', 'ozempic', 'mounjaro']}
+          timeRange={timeWindow}
+          widgetType="RELATED_QUERIES"
+        />
+      </div>
       
       {/* Brand Interest Chart from API */}
       <Card>

@@ -2,8 +2,8 @@
 // Handles Google Trends, Keyword Research, and SERP Analysis
 
 // DataForSEO API configuration
-const DATAFORSEO_LOGIN = process.env.DATAFORSEO_LOGIN || '';
-const DATAFORSEO_PASSWORD = process.env.DATAFORSEO_PASSWORD || '';
+const DATAFORSEO_LOGIN = process.env.DATAFORSEO_LOGIN || 'ben@mindsparkdigitallabs.com';
+const DATAFORSEO_PASSWORD = process.env.DATAFORSEO_PASSWORD || '85ac8ba9444f7f7d';
 const DATAFORSEO_BASE_URL = 'https://api.dataforseo.com/v3';
 
 // Create basic auth header
@@ -83,7 +83,28 @@ async function makeRequest({ endpoint, method = 'POST', data }: DataForSEOReques
     }
 
     // Return the first task result
-    return result.tasks?.[0]?.result?.[0] || result.tasks?.[0]?.data || null;
+    if (result.tasks && result.tasks.length > 0) {
+      const task = result.tasks[0];
+      
+      // Handle different response structures
+      if (task.result) {
+        if (Array.isArray(task.result)) {
+          // For endpoints that return array of results (like search_volume)
+          if (endpoint.includes('search_volume') && task.result.length > 0) {
+            return task.result; // Return full array for search volume
+          }
+          // For other endpoints, return first result
+          return task.result.length > 0 ? task.result[0] : null;
+        }
+        return task.result;
+      }
+      
+      // Check if task has data
+      if (task.data) {
+        return task.data;
+      }
+    }
+    return null;
   } catch (error) {
     console.error('DataForSEO request failed:', error);
     return null;
@@ -125,20 +146,33 @@ export async function getGoogleTrends(
 
   // Parse interest over time data
   const interestData = result.interest_over_time?.items || [];
-  const relatedQueries = result.related_queries?.rising || [];
-  const relatedTopics = result.related_topics?.rising || [];
+  const relatedQueries = result.related_queries?.rising || result.related_queries?.top || [];
+  const relatedTopics = result.related_topics?.rising || result.related_topics?.top || [];
+
+  // Map the interest data properly
+  const processedInterest = interestData.map((item: any) => {
+    const values: Record<string, number> = {};
+    // Handle both array and object formats for values
+    if (Array.isArray(item.values)) {
+      keywords.forEach((keyword: string, idx: number) => {
+        values[keyword] = item.values[idx] || 0;
+      });
+    } else if (item.values) {
+      keywords.forEach((keyword: string) => {
+        values[keyword] = item.values[keyword] || 0;
+      });
+    }
+    return {
+      date: item.datetime || item.date,
+      values,
+    };
+  });
 
   return {
     keywords,
     market,
     timeWindow,
-    interestOverTime: interestData.map((item: any) => ({
-      date: item.datetime,
-      values: keywords.reduce((acc: any, keyword: string, idx: number) => {
-        acc[keyword] = item.values[idx] || 0;
-        return acc;
-      }, {}),
-    })),
+    interestOverTime: processedInterest,
     relatedQueries: relatedQueries.slice(0, 20),
     relatedTopics: relatedTopics.slice(0, 10),
   };
@@ -171,8 +205,10 @@ export async function getKeywordData(
 
   if (!result) return null;
 
-  // Parse keyword metrics
-  return result.map((item: any) => ({
+  // Parse keyword metrics - result might be an object with items array
+  const items = Array.isArray(result) ? result : (result.items || []);
+  
+  return items.map((item: any) => ({
     keyword: item.keyword,
     searchVolume: item.search_volume || 0,
     cpc: item.cpc || 0,
@@ -215,8 +251,11 @@ export async function getRelatedKeywords(
 
   if (!result) return null;
 
-  // Categorize keywords by theme
-  const keywords = result.items || [];
+  // Get keywords from the result - could be result itself or result.items
+  const keywords = Array.isArray(result) ? result : (result.items || []);
+  
+  // Only return data if we have keywords
+  if (keywords.length === 0) return null;
   
   return {
     all: keywords,

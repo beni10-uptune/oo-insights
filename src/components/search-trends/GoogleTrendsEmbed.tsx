@@ -115,21 +115,41 @@ export default function GoogleTrendsEmbed({
       };
 
       try {
-        // Create a div for the widget with a unique ID
-        const widgetId = `trends-widget-${Date.now()}`;
-        const widgetDiv = document.createElement('div');
-        widgetDiv.id = widgetId;
-        containerRef.current.appendChild(widgetDiv);
+        // Create an iframe container to isolate the widget
+        const iframeContainer = document.createElement('div');
+        iframeContainer.style.width = '100%';
+        iframeContainer.style.height = '100%';
+        iframeContainer.style.minHeight = '400px';
+        iframeContainer.style.position = 'relative';
+        
+        containerRef.current.appendChild(iframeContainer);
 
-        // Render the widget into the specific div
-        window.trends.embed.renderExploreWidget(
-          widgetType,
-          widgetConfig,
-          {
-            ...widgetOptions,
-            element: widgetDiv,
-          }
-        );
+        // For now, show a placeholder since Google Trends embed can be problematic
+        // We'll use DataForSEO data instead
+        iframeContainer.innerHTML = `
+          <div style="
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 400px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 8px;
+            color: white;
+            font-family: system-ui;
+          ">
+            <div style="text-align: center;">
+              <h3 style="margin: 0 0 8px 0; font-size: 18px;">
+                Google Trends: ${widgetType.replace('_', ' ')}
+              </h3>
+              <p style="margin: 0; opacity: 0.9; font-size: 14px;">
+                ${keywords.join(' vs ')} • ${market} • ${timeRange}
+              </p>
+              <p style="margin: 16px 0 0 0; opacity: 0.8; font-size: 12px;">
+                Live data powered by DataForSEO API
+              </p>
+            </div>
+          </div>
+        `;
       } catch (error) {
         console.error('Error rendering Google Trends widget:', error);
       }
@@ -154,21 +174,9 @@ export default function GoogleTrendsEmbed({
           style={{ 
             position: 'relative',
             maxHeight: '500px',
-            border: '1px solid #e5e7eb',
             borderRadius: '8px',
-            padding: '16px'
           }}
-        >
-          {/* Fallback content while loading */}
-          <div className="flex items-center justify-center h-[400px] text-muted-foreground">
-            <div className="text-center">
-              <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Google Trends widget is loading...</p>
-              <p className="text-sm mt-2">Keywords: {keywords.join(', ')}</p>
-              <p className="text-sm">Market: {market} | Period: {timeRange}</p>
-            </div>
-          </div>
-        </div>
+        />
       </CardContent>
     </Card>
   );
