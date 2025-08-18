@@ -115,15 +115,20 @@ export default function GoogleTrendsEmbed({
       };
 
       try {
-        // Create a div for the widget
+        // Create a div for the widget with a unique ID
+        const widgetId = `trends-widget-${Date.now()}`;
         const widgetDiv = document.createElement('div');
+        widgetDiv.id = widgetId;
         containerRef.current.appendChild(widgetDiv);
 
-        // Render the widget
+        // Render the widget into the specific div
         window.trends.embed.renderExploreWidget(
           widgetType,
           widgetConfig,
-          widgetOptions
+          {
+            ...widgetOptions,
+            element: widgetDiv,
+          }
         );
       } catch (error) {
         console.error('Error rendering Google Trends widget:', error);
@@ -139,15 +144,31 @@ export default function GoogleTrendsEmbed({
           Google Trends - Live Data
         </CardTitle>
         <CardDescription>
-          Real-time search interest from Google Trends
+          Real-time search interest from Google Trends for {market}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div 
           ref={containerRef}
-          className="min-h-[400px] w-full"
-          style={{ position: 'relative' }}
-        />
+          className="min-h-[400px] w-full overflow-hidden"
+          style={{ 
+            position: 'relative',
+            maxHeight: '500px',
+            border: '1px solid #e5e7eb',
+            borderRadius: '8px',
+            padding: '16px'
+          }}
+        >
+          {/* Fallback content while loading */}
+          <div className="flex items-center justify-center h-[400px] text-muted-foreground">
+            <div className="text-center">
+              <TrendingUp className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>Google Trends widget is loading...</p>
+              <p className="text-sm mt-2">Keywords: {keywords.join(', ')}</p>
+              <p className="text-sm">Market: {market} | Period: {timeRange}</p>
+            </div>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
