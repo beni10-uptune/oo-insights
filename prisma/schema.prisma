@@ -22,23 +22,36 @@ model ContentPage {
   tags           String[]
   isArticle      Boolean      @default(false)
   source         String       @default("firecrawl")
+  publishDate    DateTime?    // Actual publish date from sitemap
   lastCrawledAt  DateTime?
   lastModifiedAt DateTime?
   changeHash     String?
   changePct      Float?
   embedding      Bytes?
   summary        String?      @db.Text
-  summaryEn      String?      @db.Text
-  category       String?
+  summaryEn      String?      @db.Text  // Always in English
+  category       String?      // MECE category: HCP, CVD, Menopause, etc.
+  contentType    String?      // Type: article, tool, video, homepage, etc.
   subcategory    String?
+  confidence     Float?       // AI categorization confidence
+  keywords       String[]     // Extracted keywords for category
   hasHcpLocator  Boolean?     @default(false)
+  hasVideo       Boolean      @default(false)
+  hasCalculator  Boolean      @default(false)
+  hasForm        Boolean      @default(false)
+  readingTime    Int?         // Estimated reading time in minutes
   signals        Json?
   crawlError     String?      @db.Text
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @default(now()) @updatedAt
   events         PageEvent[]
   changes        PageChange[]
+  metrics        PageMetrics?
 
+  @@index([market, category])
+  @@index([contentType])
+  @@index([publishDate])
+  @@index([market, publishDate])
   @@map("content_pages")
 }
 
@@ -281,4 +294,39 @@ model RelatedQueries {
   @@index([marketCode, seedKeyword])
   @@index([marketCode])
   @@map("related_queries")
+}
+
+// Page-level metrics to connect content with performance data
+model PageMetrics {
+  id             String      @id @default(uuid())
+  page           ContentPage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  pageId         String      @unique
+  
+  // Traffic metrics (from GSC or analytics)
+  impressions    Int         @default(0)
+  clicks         Int         @default(0)
+  ctr            Float?      // Click-through rate
+  avgPosition    Float?      // Average search position
+  
+  // Engagement metrics
+  avgTimeOnPage  Float?      // In seconds
+  bounceRate     Float?      // Percentage
+  exitRate       Float?      // Percentage
+  
+  // Content performance
+  socialShares   Int         @default(0)
+  backlinks      Int         @default(0)
+  
+  // Category analytics
+  categoryViews  Json?       // Views broken down by user segment
+  conversionRate Float?      // If tracking conversions
+  
+  // Time-based data
+  period         String      // e.g., "2024-01", "2024-W01", "2024-Q1"
+  lastUpdated    DateTime    @default(now())
+  createdAt      DateTime    @default(now())
+  
+  @@index([pageId, period])
+  @@index([period])
+  @@map("page_metrics")
 }

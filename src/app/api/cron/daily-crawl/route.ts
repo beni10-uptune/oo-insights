@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     const results = await crawlAllEucanMarkets({
       summarize: true,
       classify: true,
-      limit: 25, // Reasonable limit for daily crawl
+      limit: 50, // Comprehensive coverage for core markets
     });
     
     const duration = Date.now() - startTime;

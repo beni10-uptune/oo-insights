@@ -58,11 +58,11 @@ export async function storeCrawlResult(result: CrawlResult & { publishDate?: Dat
       tags: extractTags(result),
       isArticle: isArticlePage(url, result),
       source: 'firecrawl',
+      publishDate: result.publishDate || null, // Use actual publish date from sitemap
       lastCrawledAt: new Date(),
       lastModifiedAt: new Date(),
       changeHash: contentHash,
       changePct,
-      // publishDate field doesn't exist in ContentPage model, skip it
     },
     update: {
       title: result.title,
@@ -71,12 +71,12 @@ export async function storeCrawlResult(result: CrawlResult & { publishDate?: Dat
       textContent: result.content,
       wordCount: result.content?.split(/\s+/).length || 0,
       tags: extractTags(result),
+      publishDate: result.publishDate || existingPage.publishDate, // Keep existing if not provided
       lastCrawledAt: new Date(),
       lastModifiedAt: existingPage?.changeHash !== contentHash ? new Date() : existingPage.lastModifiedAt,
       changeHash: contentHash,
       changePct,
       updatedAt: new Date(),
-      // publishDate field doesn't exist in ContentPage model, skip it
     },
   });
   
@@ -220,8 +220,7 @@ export async function getRecentEvents(
           subcategory: true,
           isArticle: true,
           changePct: true,
-          // @ts-expect-error - publishDate column might not exist yet
-          publishDate: true,
+          publishDate: true, // Get actual publish date from sitemap
         },
       },
     },

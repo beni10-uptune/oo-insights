@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import GoogleTrendsEmbed from './GoogleTrendsEmbed';
 
 const MARKETS = [
   { value: 'UK', label: '🇬🇧 United Kingdom', language: 'en' },
@@ -134,8 +135,45 @@ export default function SearchTrendsDashboard({ market, onMarketChange }: Search
   };
   
   const handleExport = () => {
-    // TODO: Implement CSV export
-    console.log('Export clicked');
+    // Export data as CSV
+    const csvData = [];
+    
+    // Add headers
+    csvData.push(['Market', 'Time Window', 'Data Type', 'Metric', 'Value']);
+    
+    // Add KPI data
+    csvData.push([market, timeWindow, 'KPI', 'Top Brand', kpis.topBrand]);
+    csvData.push([market, timeWindow, 'KPI', 'Biggest Riser', kpis.biggestRiser]);
+    csvData.push([market, timeWindow, 'KPI', 'Top Theme', kpis.topTheme]);
+    csvData.push([market, timeWindow, 'KPI', 'Total Queries', kpis.totalQueries]);
+    
+    // Add trends data
+    if (trendsData?.series) {
+      trendsData.series.forEach((brand: any) => {
+        brand.points?.forEach((point: any) => {
+          csvData.push([market, timeWindow, 'Trend', `${brand.brand} - ${point.date}`, point.value]);
+        });
+      });
+    }
+    
+    // Add volume data
+    if (volumeData?.highVolume) {
+      volumeData.highVolume.forEach((query: any) => {
+        csvData.push([market, timeWindow, 'Volume', query.query, query.volume]);
+      });
+    }
+    
+    // Convert to CSV string
+    const csv = csvData.map(row => row.join(',')).join('\n');
+    
+    // Download
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `search-trends-${market}-${timeWindow}-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
   
   // Calculate KPIs based on actual data
@@ -343,15 +381,23 @@ export default function SearchTrendsDashboard({ market, onMarketChange }: Search
         </Card>
       </div>
       
-      {/* Brand Interest Chart */}
+      {/* Google Trends Embed */}
+      <GoogleTrendsEmbed 
+        market={market}
+        keywords={['wegovy', 'ozempic', 'mounjaro']}
+        timeRange={timeWindow}
+        widgetType="TIMESERIES"
+      />
+      
+      {/* Brand Interest Chart from API */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Activity className="h-5 w-5" />
-            Brand Interest Over Time
+            Brand Interest Over Time (DataForSEO)
           </CardTitle>
           <CardDescription>
-            Normalized search interest (0-100 scale) for each brand
+            Normalized search interest (0-100 scale) for each brand from our API
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -359,7 +405,7 @@ export default function SearchTrendsDashboard({ market, onMarketChange }: Search
             <div className="h-[300px] flex items-center justify-center">
               <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
             </div>
-          ) : (
+          ) : trendsData?.series && trendsData.series.length > 0 ? (
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={formatChartData(trendsData?.series)}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -372,6 +418,10 @@ export default function SearchTrendsDashboard({ market, onMarketChange }: Search
                 <Line type="monotone" dataKey="Mounjaro" stroke="#10b981" strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
+          ) : (
+            <div className="h-[300px] flex items-center justify-center text-muted-foreground">
+              No data available. Click Refresh to fetch latest trends.
+            </div>
           )}
         </CardContent>
       </Card>

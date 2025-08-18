@@ -1,25 +1,4 @@
-import { VertexAI } from '@google-cloud/vertexai';
-
-// Initialize Vertex AI
-let vertexAI: VertexAI | null = null;
-
-function getVertexAI() {
-  if (!vertexAI) {
-    const projectId = process.env.GOOGLE_CLOUD_PROJECT;
-    const location = 'us-central1';
-    
-    if (!projectId) {
-      throw new Error('GOOGLE_CLOUD_PROJECT environment variable not set');
-    }
-    
-    vertexAI = new VertexAI({
-      project: projectId,
-      location,
-    });
-  }
-  
-  return vertexAI;
-}
+import { getVertexAI } from '../vertex-ai-fixed';
 
 // Content categories for classification
 export const CONTENT_CATEGORIES = {

@@ -1,0 +1,186 @@
+{
+  "name": "OO Insights Daily Firecrawl",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "1",
+      "name": "Daily 9AM CET",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://oo.mindsparkdigitallabs.com/api/crawl/full-website",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "market",
+              "value": "de"
+            },
+            {
+              "name": "maxPages",
+              "value": "100"
+            }
+          ]
+        }
+      },
+      "id": "2",
+      "name": "Crawl Germany",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [450, 200]
+    },
+    {
+      "parameters": {
+        "url": "https://oo.mindsparkdigitallabs.com/api/crawl/full-website",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "market",
+              "value": "fr"
+            },
+            {
+              "name": "maxPages",
+              "value": "80"
+            }
+          ]
+        }
+      },
+      "id": "3",
+      "name": "Crawl France",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "url": "https://oo.mindsparkdigitallabs.com/api/crawl/full-website",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "market",
+              "value": "it"
+            },
+            {
+              "name": "maxPages",
+              "value": "80"
+            }
+          ]
+        }
+      },
+      "id": "4",
+      "name": "Crawl Italy",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [450, 400]
+    },
+    {
+      "parameters": {
+        "url": "https://oo.mindsparkdigitallabs.com/api/crawl/full-website",
+        "method": "POST",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "market",
+              "value": "es"
+            },
+            {
+              "name": "maxPages",
+              "value": "80"
+            }
+          ]
+        }
+      },
+      "id": "5",
+      "name": "Crawl Spain",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [450, 500]
+    },
+    {
+      "parameters": {
+        "amount": 60,
+        "unit": "seconds"
+      },
+      "id": "6",
+      "name": "Wait 1 min",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [650, 300]
+    }
+  ],
+  "connections": {
+    "Daily 9AM CET": {
+      "main": [
+        [
+          {
+            "node": "Crawl Germany",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crawl Germany": {
+      "main": [
+        [
+          {
+            "node": "Wait 1 min",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 1 min": {
+      "main": [
+        [
+          {
+            "node": "Crawl France",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crawl France": {
+      "main": [
+        [
+          {
+            "node": "Crawl Italy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crawl Italy": {
+      "main": [
+        [
+          {
+            "node": "Crawl Spain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

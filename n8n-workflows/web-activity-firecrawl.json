@@ -1,0 +1,327 @@
+{
+  "name": "OO Insights - Web Activity Firecrawl",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "schedule-trigger",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "content": "## Web Activity Firecrawl\n### Markets to crawl",
+        "height": 80,
+        "width": 250
+      },
+      "id": "sticky-note-1",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [250, 180]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.apiUrl }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.requestBody) }}",
+        "options": {
+          "timeout": 300000
+        }
+      },
+      "id": "http-request",
+      "name": "Call Firecrawl API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "tableId": "markets_crawl_status",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldName": "market",
+              "fieldValue": "={{ $json.market }}"
+            },
+            {
+              "fieldName": "status",
+              "fieldValue": "={{ $json.status }}"
+            },
+            {
+              "fieldName": "pages_crawled",
+              "fieldValue": "={{ $json.pagesCrawled }}"
+            },
+            {
+              "fieldName": "last_crawl",
+              "fieldValue": "={{ $now.toISO() }}"
+            },
+            {
+              "fieldName": "errors",
+              "fieldValue": "={{ $json.errors?.join(', ') || '' }}"
+            }
+          ]
+        }
+      },
+      "id": "googlesheets",
+      "name": "Log to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Define core markets and their configurations\nconst markets = [\n  {\n    code: 'de',\n    name: 'Germany',\n    url: 'https://www.ueber-gewicht.de/',\n    maxPages: 100,\n    priority: 1\n  },\n  {\n    code: 'fr',\n    name: 'France', \n    url: 'https://www.audeladupoids.fr/',\n    maxPages: 80,\n    priority: 1\n  },\n  {\n    code: 'it',\n    name: 'Italy',\n    url: 'https://www.novoio.it/',\n    maxPages: 80,\n    priority: 1\n  },\n  {\n    code: 'es',\n    name: 'Spain',\n    url: 'https://www.laverdaddesupeso.es/',\n    maxPages: 80,\n    priority: 1\n  }\n];\n\n// Prepare crawl requests\nconst crawlRequests = markets.map(market => ({\n  market: market.code,\n  marketName: market.name,\n  marketUrl: market.url,\n  maxPages: market.maxPages,\n  priority: market.priority,\n  apiUrl: 'https://oo.mindsparkdigitallabs.com/api/crawl/full-website',\n  requestBody: {\n    market: market.code,\n    maxPages: market.maxPages\n  }\n}));\n\nreturn crawlRequests;"
+      },
+      "id": "code-node",
+      "name": "Prepare Market Crawls",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {
+          "batchInterval": 5000
+        }
+      },
+      "id": "split-batches",
+      "name": "Rate Limiter",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "channel": "#oo-insights-alerts",
+        "text": "=Web Activity Crawl Complete\\n\\nMarket: {{ $json.market }}\\nStatus: {{ $json.status }}\\nPages Crawled: {{ $json.pagesCrawled }}\\nTime: {{ $now.toISO() }}",
+        "attachments": [],
+        "otherOptions": {}
+      },
+      "id": "slack",
+      "name": "Send Slack Notification",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.status }}",
+              "value2": "error"
+            }
+          ]
+        }
+      },
+      "id": "if-error",
+      "name": "Check for Errors",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "channel": "#oo-insights-alerts",
+        "text": "=⚠️ Web Activity Crawl Error\\n\\nMarket: {{ $json.market }}\\nError: {{ $json.error }}\\nTime: {{ $now.toISO() }}",
+        "attachments": [],
+        "otherOptions": {}
+      },
+      "id": "slack-error",
+      "name": "Send Error Alert",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [1250, 450]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "web-activity-crawl",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 450]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Parse Firecrawl response and prepare status update\nconst response = $input.item.json;\n\n// Check if the crawl was successful\nif (response.success) {\n  return {\n    market: response.market,\n    status: 'success',\n    pagesCrawled: response.pagesCrawled,\n    message: response.message,\n    errors: response.errors || []\n  };\n} else {\n  return {\n    market: $input.item.json.market || 'unknown',\n    status: 'error',\n    pagesCrawled: 0,\n    error: response.error || 'Unknown error',\n    errors: [response.error || 'Unknown error']\n  };\n}"
+      },
+      "id": "process-response",
+      "name": "Process Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [950, 300]
+    },
+    {
+      "parameters": {
+        "amount": 60,
+        "unit": "seconds"
+      },
+      "id": "wait",
+      "name": "Wait Between Markets",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [750, 300]
+    }
+  ],
+  "connections": {
+    "schedule-trigger": {
+      "main": [
+        [
+          {
+            "node": "code-node",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "code-node": {
+      "main": [
+        [
+          {
+            "node": "split-batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "split-batches": {
+      "main": [
+        [
+          {
+            "node": "wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "wait": {
+      "main": [
+        [
+          {
+            "node": "http-request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "http-request": {
+      "main": [
+        [
+          {
+            "node": "process-response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "process-response": {
+      "main": [
+        [
+          {
+            "node": "if-error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "if-error": {
+      "main": [
+        [
+          {
+            "node": "googlesheets",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "slack-error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "googlesheets": {
+      "main": [
+        [
+          {
+            "node": "slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "webhook": {
+      "main": [
+        [
+          {
+            "node": "code-node",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "",
+    "timezone": "Europe/Berlin"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "OO Insights",
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    },
+    {
+      "name": "Web Crawling",
+      "createdAt": "2024-01-01T00:00:00.000Z"
+    }
+  ],
+  "triggerCount": 2,
+  "updatedAt": "2024-01-01T00:00:00.000Z",
+  "versionId": "1"
+}

@@ -16,7 +16,8 @@ import {
 } from 'lucide-react';
 
 interface MarketCoverage {
-  market: string;
+  market: string; // Display name (e.g. "Germany")
+  marketCode: string; // Code for exports (e.g. "de")
   flag: string;
   language: string;
   url: string;
@@ -233,7 +234,7 @@ export default function CoverageMatrix() {
             </thead>
             <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
               {coverage.map((market) => (
-                <tr key={market.market} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                <tr key={market.marketCode} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <span className="text-xl">{market.flag}</span>
@@ -302,24 +303,24 @@ export default function CoverageMatrix() {
                     {market.pageCount > 0 && (
                       <div className="flex items-center justify-center gap-1">
                         <button
-                          onClick={() => handleExport(market.market, 'csv')}
-                          disabled={exporting === market.market}
+                          onClick={() => handleExport(market.marketCode, 'csv')}
+                          disabled={exporting === market.marketCode}
                           className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
                           title="Export as CSV"
                         >
                           <Download className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                         </button>
                         <button
-                          onClick={() => handleExport(market.market, 'json')}
-                          disabled={exporting === market.market}
+                          onClick={() => handleExport(market.marketCode, 'json')}
+                          disabled={exporting === market.marketCode}
                           className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
                           title="Export as JSON"
                         >
                           <FileText className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                         </button>
                         <button
-                          onClick={() => handleExport(market.market, 'llm')}
-                          disabled={exporting === market.market}
+                          onClick={() => handleExport(market.marketCode, 'llm')}
+                          disabled={exporting === market.marketCode}
                           className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded"
                           title="Export for LLM"
                         >

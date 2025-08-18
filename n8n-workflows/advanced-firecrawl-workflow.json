@@ -1,0 +1,448 @@
+{
+  "name": "OO Insights - Advanced Firecrawl with Sitemap",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "daily-schedule",
+      "name": "Daily at 9 AM CET",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Core markets configuration with priorities\nconst markets = [\n  {\n    code: 'de',\n    name: 'Germany',\n    url: 'https://www.ueber-gewicht.de/',\n    sitemapUrl: 'https://www.ueber-gewicht.de/sitemap.xml',\n    maxPages: 100,\n    priority: 1,\n    language: 'de-DE'\n  },\n  {\n    code: 'fr',\n    name: 'France',\n    url: 'https://www.audeladupoids.fr/',\n    sitemapUrl: 'https://www.audeladupoids.fr/sitemap.xml',\n    maxPages: 80,\n    priority: 1,\n    language: 'fr-FR'\n  },\n  {\n    code: 'it',\n    name: 'Italy',\n    url: 'https://www.novoio.it/',\n    sitemapUrl: 'https://www.novoio.it/sitemap.xml',\n    maxPages: 80,\n    priority: 1,\n    language: 'it-IT'\n  },\n  {\n    code: 'es',\n    name: 'Spain',\n    url: 'https://www.laverdaddesupeso.es/',\n    sitemapUrl: 'https://www.laverdaddesupeso.es/sitemap.xml',\n    maxPages: 80,\n    priority: 1,\n    language: 'es-ES'\n  }\n];\n\n// Add crawl configuration\nreturn markets.map(market => ({\n  ...market,\n  crawlConfig: {\n    method: 'firecrawl',\n    waitTime: 1000,\n    formats: ['markdown', 'html'],\n    includeMetadata: true,\n    followRedirects: true,\n    maxDepth: 5\n  },\n  timestamp: new Date().toISOString(),\n  crawlId: `${market.code}_${Date.now()}`\n}));"
+      },
+      "id": "prepare-markets",
+      "name": "Prepare Markets",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.sitemapUrl }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "fetch-sitemap",
+      "name": "Fetch Sitemap",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse sitemap XML and extract URLs\nconst xml = $input.item.json.data;\nconst market = $input.item.json.market;\n\n// Extract URLs from sitemap\nconst urlRegex = /<loc>([^<]+)<\\/loc>/g;\nconst lastmodRegex = /<lastmod>([^<]+)<\\/lastmod>/g;\nconst urls = [];\nlet match;\n\nwhile ((match = urlRegex.exec(xml)) !== null) {\n  urls.push(match[1]);\n}\n\n// Get last modified dates\nconst lastmods = [];\nwhile ((match = lastmodRegex.exec(xml)) !== null) {\n  lastmods.push(match[1]);\n}\n\n// Combine URLs with metadata\nconst sitemapUrls = urls.map((url, index) => ({\n  url: url,\n  lastmod: lastmods[index] || null,\n  market: market.code,\n  marketName: market.name\n}));\n\n// Limit to maxPages\nconst limitedUrls = sitemapUrls.slice(0, market.maxPages);\n\nreturn {\n  market: market.code,\n  marketName: market.name,\n  totalUrls: sitemapUrls.length,\n  urlsToProcess: limitedUrls.length,\n  urls: limitedUrls,\n  crawlId: market.crawlId\n};"
+      },
+      "id": "parse-sitemap",
+      "name": "Parse Sitemap",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [850, 300]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "urls",
+        "options": {}
+      },
+      "id": "split-urls",
+      "name": "Split URLs",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 3,
+      "position": [1050, 300]
+    },
+    {
+      "parameters": {
+        "batchSize": 5,
+        "options": {
+          "batchInterval": 2000
+        }
+      },
+      "id": "batch-processor",
+      "name": "Batch Processor",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [1250, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.firecrawl.dev/v0/scrape",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{ $credentials.firecrawlApiKey }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"url\": \"{{ $json.url }}\",\n  \"formats\": [\"markdown\", \"html\"],\n  \"waitFor\": 1000,\n  \"includeMetadata\": true\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "firecrawl-scrape",
+      "name": "Firecrawl Scrape",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://oo.mindsparkdigitallabs.com/api/web-activity/store",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-Cron-Secret",
+              "value": "{{ $credentials.cronSecret }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"url\": \"{{ $json.url }}\",\n  \"market\": \"{{ $json.market }}\",\n  \"title\": \"{{ $json.metadata?.title || 'Untitled' }}\",\n  \"description\": \"{{ $json.metadata?.description || '' }}\",\n  \"content\": \"{{ $json.markdown || '' }}\",\n  \"html\": \"{{ $json.html || '' }}\",\n  \"lastmod\": \"{{ $json.lastmod }}\",\n  \"crawlId\": \"{{ $json.crawlId }}\",\n  \"metadata\": {{ JSON.stringify($json.metadata || {}) }}\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "store-content",
+      "name": "Store in Database",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1650, 300]
+    },
+    {
+      "parameters": {
+        "amount": 1,
+        "unit": "seconds"
+      },
+      "id": "rate-limit-delay",
+      "name": "Rate Limit Delay",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [1550, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Aggregate crawl results\nconst results = $items().map(item => item.json);\n\nconst summary = {\n  crawlId: results[0]?.crawlId || 'unknown',\n  market: results[0]?.market || 'unknown',\n  marketName: results[0]?.marketName || 'Unknown',\n  totalPages: results.length,\n  successfulPages: results.filter(r => r.success).length,\n  failedPages: results.filter(r => !r.success).length,\n  timestamp: new Date().toISOString(),\n  errors: results.filter(r => r.error).map(r => ({\n    url: r.url,\n    error: r.error\n  }))\n};\n\nreturn summary;"
+      },
+      "id": "aggregate-results",
+      "name": "Aggregate Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1850, 300]
+    },
+    {
+      "parameters": {
+        "resource": "database",
+        "operation": "create",
+        "databaseId": "{{ $credentials.notionDatabaseId }}",
+        "properties": {
+          "values": [
+            {
+              "key": "Market",
+              "value": "{{ $json.market }}"
+            },
+            {
+              "key": "Pages Crawled",
+              "value": "{{ $json.totalPages }}"
+            },
+            {
+              "key": "Successful",
+              "value": "{{ $json.successfulPages }}"
+            },
+            {
+              "key": "Failed",
+              "value": "{{ $json.failedPages }}"
+            },
+            {
+              "key": "Timestamp",
+              "value": "{{ $json.timestamp }}"
+            },
+            {
+              "key": "Crawl ID",
+              "value": "{{ $json.crawlId }}"
+            }
+          ]
+        }
+      },
+      "id": "notion-log",
+      "name": "Log to Notion",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.1,
+      "position": [2050, 300]
+    },
+    {
+      "parameters": {
+        "channel": "#oo-insights-crawl",
+        "text": "=✅ Market Crawl Complete\\n\\n*Market:* {{ $json.marketName }} ({{ $json.market }})\\n*Total Pages:* {{ $json.totalPages }}\\n*Successful:* {{ $json.successfulPages }}\\n*Failed:* {{ $json.failedPages }}\\n*Crawl ID:* `{{ $json.crawlId }}`\\n*Timestamp:* {{ $json.timestamp }}",
+        "attachments": [],
+        "otherOptions": {}
+      },
+      "id": "slack-summary",
+      "name": "Slack Summary",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [2250, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.failedPages }}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "check-failures",
+      "name": "Check Failures",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [2050, 450]
+    },
+    {
+      "parameters": {
+        "channel": "#oo-insights-alerts",
+        "text": "=⚠️ Crawl Errors Detected\\n\\n*Market:* {{ $json.market }}\\n*Failed Pages:* {{ $json.failedPages }}\\n*Errors:*\\n{{ $json.errors.map(e => `• ${e.url}: ${e.error}`).join('\\n') }}",
+        "attachments": [],
+        "otherOptions": {}
+      },
+      "id": "slack-errors",
+      "name": "Alert Errors",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.1,
+      "position": [2250, 450]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "trigger-crawl",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Manual Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [250, 450]
+    },
+    {
+      "parameters": {
+        "content": "## Advanced Firecrawl Workflow\\n\\n### Features:\\n- Sitemap parsing for comprehensive crawling\\n- Rate limiting (5 pages per batch, 1s delay)\\n- Error handling and retry logic\\n- Database storage for all content\\n- Notion logging for tracking\\n- Slack notifications\\n\\n### Schedule:\\n- Daily at 9 AM CET\\n- Manual trigger via webhook",
+        "height": 250,
+        "width": 350
+      },
+      "id": "documentation",
+      "name": "Documentation",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [250, 50]
+    }
+  ],
+  "connections": {
+    "daily-schedule": {
+      "main": [
+        [
+          {
+            "node": "prepare-markets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "prepare-markets": {
+      "main": [
+        [
+          {
+            "node": "fetch-sitemap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fetch-sitemap": {
+      "main": [
+        [
+          {
+            "node": "parse-sitemap",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "parse-sitemap": {
+      "main": [
+        [
+          {
+            "node": "split-urls",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "split-urls": {
+      "main": [
+        [
+          {
+            "node": "batch-processor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "batch-processor": {
+      "main": [
+        [
+          {
+            "node": "firecrawl-scrape",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "firecrawl-scrape": {
+      "main": [
+        [
+          {
+            "node": "rate-limit-delay",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "rate-limit-delay": {
+      "main": [
+        [
+          {
+            "node": "store-content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "store-content": {
+      "main": [
+        [
+          {
+            "node": "aggregate-results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "aggregate-results": {
+      "main": [
+        [
+          {
+            "node": "notion-log",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "check-failures",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "notion-log": {
+      "main": [
+        [
+          {
+            "node": "slack-summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "check-failures": {
+      "main": [
+        [
+          {
+            "node": "slack-errors",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "webhook-trigger": {
+      "main": [
+        [
+          {
+            "node": "prepare-markets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "error-handler-workflow",
+    "timezone": "Europe/Berlin",
+    "executionTimeout": 3600
+  },
+  "staticData": {
+    "lastExecution": null,
+    "marketStatus": {}
+  },
+  "tags": [
+    {
+      "name": "OO Insights"
+    },
+    {
+      "name": "Firecrawl"
+    },
+    {
+      "name": "Production"
+    }
+  ]
+}

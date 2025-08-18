@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { summarizeContent } from '@/lib/vertex-ai';
+import { summarizeContent } from '@/lib/services/simple-ai';
 
 export async function POST(request: NextRequest) {
   try {
-    const { content, market, language, maxLength } = await request.json();
+    const { content, language = 'en' } = await request.json();
 
     if (!content) {
       return NextResponse.json(
@@ -12,13 +12,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const summary = await summarizeContent(content, {
-      market,
-      language,
-      maxLength,
-    });
+    const result = await summarizeContent(content, language);
 
-    return NextResponse.json({ summary });
+    return NextResponse.json({ 
+      success: true,
+      summary: result.english, // Return English summary
+      original: result.original, // Original language summary
+    });
   } catch (error) {
     console.error('Summarization error:', error);
     return NextResponse.json(

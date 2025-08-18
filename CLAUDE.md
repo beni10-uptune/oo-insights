@@ -57,11 +57,17 @@ CRON_SECRET=
 
 ## Key Features
 
-### 1. Web Activity Tracker
+### 1. Web Activity Tracker & Timeline
 - Monitors truthaboutweight sites across all markets
-- Uses Firecrawl API for content scraping
-- Tracks changes and SEO updates
-- Scheduled crawling every 6 hours
+- Uses Firecrawl API for content scraping with sitemap parsing
+- Tracks changes, SEO updates, and content patterns
+- Automated via Vercel Cron (daily at 9 AM CET)
+- **Timeline Module:** Real-time activity feed with:
+  - English-first summaries (using Gemini Flash 2.5)
+  - Accurate publish dates from sitemaps
+  - Cross-market pattern detection
+  - Export to CSV/JSON/LLM context formats
+  - Smart event grouping for campaign detection
 
 ### 2. Industry Insights
 - RSS feed aggregation
@@ -85,12 +91,13 @@ CRON_SECRET=
 
 ## Tech Stack
 - **Framework**: Next.js 15.4.6
-- **Database**: PostgreSQL via Prisma
+- **Database**: PostgreSQL via Prisma (Supabase)
 - **Auth**: NextAuth.js with Google OAuth
 - **AI**: Google Vertex AI (Gemini models)
 - **Styling**: Tailwind CSS + shadcn/ui
 - **Deployment**: Vercel
 - **Web Scraping**: Firecrawl API
+- **Workflow Automation**: N8N (https://mindsparkdigitallabs.app.n8n.cloud)
 
 ## Development Commands
 ```bash
@@ -139,6 +146,82 @@ When working on this project, please follow these principles:
 - **FAIL PROPERLY**: If database/API is unavailable, return proper error responses (503/500)
 - **ENVIRONMENT CHECKS**: Mock data can ONLY be used in development with explicit checks
 - **ROBUST SOLUTIONS**: Always implement complete, production-ready solutions
+
+## Automated Web Crawling
+
+### Recommended Approach: Vercel Cron Jobs ✅
+**We use Vercel Cron Jobs for automated crawling** - it's simpler and more reliable than N8N.
+
+#### Why Vercel Cron?
+- **Zero Configuration**: Works out of the box with Vercel deployment
+- **No Manual Work**: Fully automated daily crawls
+- **Built-in Monitoring**: View logs and status in Vercel dashboard
+- **Cost Effective**: Included with Vercel hosting
+
+#### Daily Crawl Schedule
+- **Time**: 8:00 AM UTC (9:00 AM CET) daily
+- **Endpoint**: `/api/cron/daily-crawl`
+- **Markets**: All 25+ EUCAN markets
+- **Pages per Market**: 25 (configurable)
+
+#### Testing Crawls Locally
+```bash
+# Test daily crawl endpoint
+curl -X GET "http://localhost:3000/api/cron/daily-crawl" \
+  -H "Authorization: Bearer test-cron-secret"
+
+# Trigger manual crawl for all markets
+curl -X POST "http://localhost:3000/api/crawl/trigger-all" \
+  -H "Authorization: Bearer test-cron-secret"
+
+# Crawl specific market
+curl -X POST "http://localhost:3000/api/crawl/full-website" \
+  -H "Content-Type: application/json" \
+  -d '{"market": "de", "maxPages": 50}'
+```
+
+#### Production Monitoring
+```bash
+# View cron executions in Vercel
+vercel crons ls
+
+# Check recent logs
+vercel logs --filter=cron
+```
+
+**Full documentation**: See `/docs/AUTOMATED-CRAWLING.md`
+
+### Alternative: N8N Workflows (Not Recommended)
+N8N can be used but requires more manual setup and maintenance. The Vercel Cron approach above is preferred.
+
+- **N8N Instance**: https://mindsparkdigitallabs.app.n8n.cloud
+- **Why not recommended**: Complex setup, requires manual configuration, external dependency
+- **When to use**: Only if you need complex multi-step workflows beyond simple crawling
+
+## Web Activity Timeline Improvements (In Progress)
+
+### Current Issues Being Addressed
+1. **Language Barrier:** Converting all content to English-first display using `summaryEn` field
+2. **Date Accuracy:** Using actual `publishDate` from sitemaps instead of crawl timestamps
+3. **Market Coverage:** Increasing crawl depth from 25 to 50 pages per market
+4. **Export Enhancement:** Expanding LLM context export for whole-site analysis
+
+### Database Schema Used
+- **ContentPage:** Main content storage with summaryEn, publishDate, category fields
+- **PageEvent:** Tracks all changes with eventType, eventAt timestamps
+- **Market:** Central reference for all market configurations and metadata
+- **MarketDataJob:** Monitors crawl health and job status
+
+### API Endpoints
+- `/api/web-activity/timeline` - Main timeline data with pattern detection
+- `/api/web-activity/export?format=llm` - Export for LLM context (already working)
+- `/api/web-activity/markets` - Get all configured markets
+- `/api/cron/daily-crawl` - Automated daily crawl at 9 AM CET
+
+### AI Configuration
+- **Model:** Gemini Flash 2.5 (not 1.5) via direct API
+- **Service:** `simple-ai.ts` handles all summarization
+- **Languages:** Automatic detection and English translation
 
 ## Important Notes
 - **NEVER deploy mock data to production** - All production data must be real

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { MARKET_CONFIG } from '@/lib/firecrawl';
+import { getMarketName, getMarketDisplay } from '@/lib/constants/markets';
 
 const prisma = new PrismaClient();
 
@@ -60,7 +61,8 @@ export async function GET() {
       const hasRecentActivity = eventCount !== undefined && eventCount > 0;
       
       coverage.push({
-        market: marketKey,
+        market: getMarketName(marketKey), // Use proper market name
+        marketCode: marketKey, // Keep the code for exports
         flag: config.flag,
         language: config.language,
         url: config.url,

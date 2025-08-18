@@ -1,248 +1,184 @@
+// API endpoint for theme drivers and query categorization
 import { NextRequest, NextResponse } from 'next/server';
+import { getRelatedKeywords, BRAND_KEYWORDS, MARKET_TO_LOCATION, categorizeKeywords } from '@/lib/services/dataforseo';
 import { prisma } from '@/lib/db';
-import { getDataForSEOClient, MARKET_LOCATIONS } from '@/lib/dataforseo/client';
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const market = searchParams.get('market') as keyof typeof MARKET_LOCATIONS;
-    const lang = searchParams.get('lang') || 'en';
+    const searchParams = request.nextUrl.searchParams;
+    const market = searchParams.get('market') || 'UK';
     const window = searchParams.get('window') || '30d';
-    const brand = searchParams.get('brand');
-    const theme = searchParams.get('theme');
     
-    if (!market || !MARKET_LOCATIONS[market]) {
+    // Validate market
+    if (!MARKET_TO_LOCATION[market]) {
       return NextResponse.json(
-        { error: 'Invalid market parameter' },
+        { error: 'Invalid market specified' },
         { status: 400 }
       );
     }
-    
-    // Get period dates
-    const endDate = new Date();
-    const startDate = new Date();
-    switch (window) {
-      case '7d':
-        startDate.setDate(startDate.getDate() - 7);
-        break;
-      case '30d':
-        startDate.setDate(startDate.getDate() - 30);
-        break;
-      case '90d':
-        startDate.setDate(startDate.getDate() - 90);
-        break;
-      default:
-        startDate.setDate(startDate.getDate() - 30);
+
+    // Check cache first
+    const cached = await prisma.relatedQueries.findMany({
+      where: {
+        marketCode: market,
+        createdAt: {
+          gte: new Date(Date.now() - 60 * 60 * 1000), // 1 hour cache
+        },
+      },
+      orderBy: {
+        growthRate: 'desc',
+      },
+      take: 10,
+    });
+
+    if (cached.length > 0) {
+      // Also get related queries for each theme
+      const queries = await prisma.relatedQueries.findMany({
+        where: {
+          marketCode: market,
+          keyword: {
+            in: cached.map(t => t.keyword),
+          },
+        },
+        orderBy: {
+          growthRate: 'desc',
+        },
+        take: 50,
+      });
+
+      return NextResponse.json({
+        success: true,
+        market,
+        window,
+        themes: [],
+        queries: queries.map(q => ({
+          query: q.keyword,
+          theme: 'general',
+          growth: q.growthRate,
+          volume: q.searchVolume,
+          brand: detectBrand(q.keyword),
+        })),
+        cached: true,
+        timestamp: new Date().toISOString(),
+      });
     }
+
+    // Fetch fresh data from DataForSEO
+    const relatedData = await getRelatedKeywords(BRAND_KEYWORDS, market);
     
-    // Check for cached related queries
-    let queryStr = `
-      SELECT 
-        query,
-        brand,
-        growth_pct,
-        rising_score,
-        volume_monthly,
-        cpc,
-        theme,
-        theme_confidence
-      FROM related_queries
-      WHERE market = $1
-        AND timeframe = $2
-        AND period_end >= $3
-    `;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const params: any[] = [market, window, startDate];
-    
-    if (brand) {
-      params.push(brand);
-      queryStr += ` AND brand = $${params.length}`;
+    if (!relatedData) {
+      return NextResponse.json({
+        success: false,
+        market,
+        window,
+        themes: [],
+        queries: [],
+        error: 'Failed to fetch driver data',
+      });
     }
-    if (theme) {
-      params.push(theme);
-      queryStr += ` AND theme = $${params.length}`;
-    }
-    queryStr += ' ORDER BY rising_score DESC LIMIT 100';
+
+    // Categorize all keywords into themes
+    const allKeywords = [...(relatedData.all || [])];
+    const themes = categorizeKeywords(allKeywords.map((k: any) => k.keyword));
     
-    const cachedQueries = await prisma.$queryRawUnsafe(queryStr, ...params) as Array<{
-      query: string;
-      brand: string | null;
-      growth_pct: number;
-      rising_score: number;
-      volume_monthly: number;
-      cpc: number | null;
-      theme: string | null;
-      theme_confidence: number | null;
-    }>;
+    // Calculate theme metrics
+    const themeMetrics: Record<string, any> = {};
     
-    if (cachedQueries.length === 0) {
-      // Fetch fresh data from DataForSEO
-      try {
-        const client = getDataForSEOClient();
+    for (const [theme, keywords] of Object.entries(themes)) {
+      const themeQueries = allKeywords.filter((k: any) => 
+        keywords.includes(k.keyword)
+      );
+      
+      if (themeQueries.length > 0) {
+        const totalVolume = themeQueries.reduce((sum: number, q: any) => 
+          sum + (q.search_volume || 0), 0
+        );
+        const avgGrowth = themeQueries.reduce((sum: number, q: any) => 
+          sum + (q.trend || 0), 0
+        ) / themeQueries.length;
         
-        // Fetch for each brand
-        const brands = brand ? [brand] : ['Wegovy', 'Ozempic', 'Mounjaro'];
-        const allQueries = [];
-        
-        for (const b of brands) {
-          const queries = await client.getRelatedQueries(
-            market,
-            b,
-            window as '7d' | '30d' | '90d'
-          );
-          
-          // Store in database
-          for (const q of queries) {
-            await prisma.$executeRaw`
-              INSERT INTO related_queries (
-                market, language, brand, query, timeframe,
-                growth_pct, rising_score, volume_monthly, cpc,
-                theme, theme_confidence, period_start, period_end
-              ) VALUES (
-                ${market}, ${lang}, ${b}, ${q.query}, ${window},
-                ${q.growth_pct}, ${q.rising_score}, ${q.volume_monthly}, ${q.cpc},
-                ${q.theme}, ${q.theme_confidence}, ${startDate}, ${endDate}
-              )
-            `;
-            
-            allQueries.push({ ...q, brand: b });
-          }
-        }
-        
-        // Calculate theme rollups
-        const themes = await calculateThemeRollups(market, lang, window, allQueries);
-        
-        return NextResponse.json({
-          success: true,
-          themes,
-          queries: allQueries.slice(0, 50), // Top 50 rising queries
-          market,
-          window,
-          cached: false,
-        });
-      } catch (apiError) {
-        console.error('DataForSEO API error:', apiError);
-        // Continue with any cached data
+        themeMetrics[theme] = {
+          theme,
+          rising_score: avgGrowth,
+          volume_sum: totalVolume,
+          query_count: themeQueries.length,
+          queries: themeQueries.slice(0, 5),
+        };
       }
     }
-    
-    // Calculate theme rollups from cached data
-    const themeRollupsRaw = await prisma.$queryRawUnsafe(`
-      SELECT 
-        theme,
-        SUM(rising_score)::integer as rising_score,
-        SUM(volume_monthly)::integer as volume_sum,
-        COUNT(*)::integer as query_count
-      FROM related_queries
-      WHERE market = $1
-        AND timeframe = $2
-        AND period_end >= $3
-        AND theme IS NOT NULL
-      GROUP BY theme
-      ORDER BY SUM(rising_score) DESC
-      LIMIT 10
-    `, market, window, startDate) as Array<{
-      theme: string;
-      rising_score: number;
-      volume_sum: number;
-      query_count: number;
-    }>;
-    
-    // No need to convert BigInt anymore
-    const themeRollups = themeRollupsRaw;
-    
-    // Get top queries for each theme
-    const themes = await Promise.all(
-      themeRollups.map(async (t) => {
-        const topQueries = cachedQueries
-          .filter(q => q.theme === t.theme)
-          .slice(0, 5)
-          .map(q => ({
-            q: q.query,
-            growth_pct: q.growth_pct,
-            sv: q.volume_monthly,
-          }));
-        
-        return {
-          theme: t.theme,
-          rising_score: t.rising_score,
-          volume_sum: t.volume_sum,
-          query_count: t.query_count,
-          queries: topQueries,
-        };
-      })
+
+    // Sort themes by rising score
+    const sortedThemes = Object.values(themeMetrics)
+      .sort((a, b) => b.rising_score - a.rising_score)
+      .slice(0, 10);
+
+    // Prepare response data
+    const themesResponse = sortedThemes.map(t => ({
+      theme: t.theme,
+      rising_score: t.rising_score,
+      volume_sum: t.volume_sum,
+      query_count: t.query_count,
+    }));
+
+    const queriesResponse = sortedThemes.flatMap(t => 
+      t.queries.map((q: any) => ({
+        query: q.keyword,
+        theme: t.theme,
+        growth: q.trend || 0,
+        volume: q.search_volume || 0,
+        brand: detectBrand(q.keyword),
+      }))
     );
-    
+
+    // Save to database for caching
+    if (sortedThemes.length > 0) {
+      const themeData = sortedThemes.map(t => ({
+        market,
+        language: MARKET_TO_LOCATION[market].language_code,
+        timeframe: window,
+        theme: t.theme,
+        rising_score: t.rising_score,
+        volume_sum: t.volume_sum,
+        query_count: t.query_count,
+        period_start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+        period_end: new Date(),
+      }));
+
+      // Skip saving themes for now since we don't have that table
+    }
+
     return NextResponse.json({
       success: true,
-      themes,
       market,
       window,
-      cached: true,
+      themes: themesResponse,
+      queries: queriesResponse,
+      cached: false,
+      timestamp: new Date().toISOString(),
     });
+
   } catch (error) {
-    console.error('Trends drivers error:', error);
+    console.error('Error in /api/trends/drivers:', error);
     return NextResponse.json(
       { 
-        error: 'Failed to fetch drivers data',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        success: false,
+        error: 'Internal server error',
+        themes: [],
+        queries: [],
       },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }
 
-async function calculateThemeRollups(
-  market: string,
-  language: string,
-  timeframe: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  queries: any[]
-) {
-  const themeMap = new Map<string, {
-    rising_score: number;
-    volume_sum: number;
-    query_count: number;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    queries: any[];
-  }>();
-  
-  for (const q of queries) {
-    if (!q.theme) continue;
-    
-    if (!themeMap.has(q.theme)) {
-      themeMap.set(q.theme, {
-        rising_score: 0,
-        volume_sum: 0,
-        query_count: 0,
-        queries: [],
-      });
-    }
-    
-    const theme = themeMap.get(q.theme)!;
-    theme.rising_score += q.rising_score;
-    theme.volume_sum += q.volume_monthly;
-    theme.query_count += 1;
-    theme.queries.push({
-      q: q.query,
-      growth_pct: q.growth_pct,
-      sv: q.volume_monthly,
-    });
-  }
-  
-  // Sort themes by rising score and limit queries
-  return Array.from(themeMap.entries())
-    .map(([theme, data]) => ({
-      theme,
-      rising_score: data.rising_score,
-      volume_sum: data.volume_sum,
-      query_count: data.query_count,
-      queries: data.queries
-        .sort((a, b) => b.sv - a.sv)
-        .slice(0, 5),
-    }))
-    .sort((a, b) => b.rising_score - a.rising_score)
-    .slice(0, 10);
+// Helper function to detect brand
+function detectBrand(keyword: string): string {
+  const kw = keyword.toLowerCase();
+  if (kw.includes('wegovy')) return 'Wegovy';
+  if (kw.includes('ozempic')) return 'Ozempic';
+  if (kw.includes('mounjaro')) return 'Mounjaro';
+  if (kw.includes('saxenda')) return 'Saxenda';
+  if (kw.includes('rybelsus')) return 'Rybelsus';
+  if (kw.includes('zepbound')) return 'Zepbound';
+  return 'General';
 }

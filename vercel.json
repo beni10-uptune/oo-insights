@@ -5,6 +5,10 @@
   "public": true,
   "crons": [
     {
+      "path": "/api/cron/daily-sitemap",
+      "schedule": "0 6 * * *"
+    },
+    {
       "path": "/api/cron/daily-crawl",
       "schedule": "0 8 * * *"
     },
@@ -15,9 +19,19 @@
     {
       "path": "/api/cron/sitemap-review",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/trends-collection",
+      "schedule": "0 10 * * *"
     }
   ],
   "functions": {
+    "src/app/api/cron/daily-sitemap/route.ts": {
+      "maxDuration": 300
+    },
+    "src/app/api/crawl/sitemap/route.ts": {
+      "maxDuration": 300
+    },
     "src/app/api/cron/daily-crawl/route.ts": {
       "maxDuration": 300
     },
@@ -50,6 +64,9 @@
     },
     "src/app/api/trends/volume/route.ts": {
       "maxDuration": 60
+    },
+    "src/app/api/cron/trends-collection/route.ts": {
+      "maxDuration": 300
     }
   }
 }

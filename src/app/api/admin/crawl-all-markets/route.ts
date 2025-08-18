@@ -25,8 +25,7 @@ export async function POST(request: NextRequest) {
       marketsToProcess = Object.keys(MARKET_CONFIG);
     }
     
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const results: Record<string, any> = {};
+    const results: Record<string, unknown> = {};
     const startTime = Date.now();
     
     console.log(`[CRAWL-ALL] Starting crawl for ${marketsToProcess.length} markets`);
@@ -37,7 +36,7 @@ export async function POST(request: NextRequest) {
       console.log(`[CRAWL-ALL] Processing market: ${marketCode}`);
       
       // Record job start (skip if table doesn't exist)
-      let job: any = null;
+      let job: unknown = null;
       try {
         job = await prisma.marketDataJob.create({
           data: {
@@ -51,7 +50,7 @@ export async function POST(request: NextRequest) {
             }
           }
         });
-      } catch (e) {
+      } catch {
         console.log(`[CRAWL-ALL] MarketDataJob table not available, skipping job tracking`);
       }
       
@@ -83,7 +82,7 @@ export async function POST(request: NextRequest) {
                 }
               }
             });
-          } catch (e) {
+          } catch {
             // Table doesn't exist, skip
           }
         }
@@ -126,7 +125,7 @@ export async function POST(request: NextRequest) {
                 }
               }
             });
-          } catch (e) {
+          } catch {
             // Table doesn't exist, skip
           }
         }
@@ -182,13 +181,13 @@ export async function GET(request: NextRequest) {
     const onlyCoreMarkets = searchParams.get('core') === 'true';
     
     // Try to get markets from table, fallback to config
-    let markets: any[] = [];
+    let markets: unknown[] = [];
     try {
       markets = await prisma.market.findMany({
         where: onlyCoreMarkets ? { isCore: true } : {},
         orderBy: { priority: 'asc' }
       });
-    } catch (e) {
+    } catch {
       // Market table doesn't exist, use config
       const marketCodes = onlyCoreMarkets 
         ? ['de', 'fr', 'it', 'es', 'ca_en', 'ca_fr', 'uk', 'pl']
@@ -210,7 +209,7 @@ export async function GET(request: NextRequest) {
         where: { market: market.code }
       });
       
-      let lastJob: any = null;
+      let lastJob: unknown = null;
       try {
         lastJob = await prisma.marketDataJob.findFirst({
           where: { 
@@ -219,7 +218,7 @@ export async function GET(request: NextRequest) {
           },
           orderBy: { createdAt: 'desc' }
         });
-      } catch (e) {
+      } catch {
         // Table doesn't exist
       }
       
